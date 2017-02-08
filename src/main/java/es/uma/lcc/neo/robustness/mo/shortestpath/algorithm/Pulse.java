@@ -13,6 +13,7 @@ import java.util.Set;
  */
 public class Pulse implements RoutingAlgorithm {
 
+    
     private GraphTable graph;
     public void setGraph(GraphTable graph) {
         this.graph = graph;
