@@ -4,6 +4,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -115,5 +116,18 @@ public class GraphTable {
 
     public Map<Long, Float> getUpperBound() {
         return upperBound;
+    }
+
+    public float[] getFitness(List<Node> path) {
+        float[] fitness = new float[getWeightsMatrix().columnKeySet().size()];
+        for (int i = 0; i < path.size() - 1; i++) {
+            Long arc = getAdjacencyMatrix().get(path.get(i).getId(), path.get(i + 1).getId());
+
+            for (Long w : getWeightsMatrix().columnKeySet()) {
+                fitness[w.intValue()] += getWeightsMatrix().get(arc, w);
+            }
+        }
+
+        return fitness;
     }
 }

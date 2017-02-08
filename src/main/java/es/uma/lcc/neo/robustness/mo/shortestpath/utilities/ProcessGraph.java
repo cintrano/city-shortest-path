@@ -26,11 +26,11 @@ public class ProcessGraph {
      * @return a GraphTable object
      */
     public static GraphTable parserFile(String file) {
-        String extension = file.split(".")[file.split(".").length - 1];
+        String extension = file.split("\\.")[file.split("\\.").length - 1];
         if (extension.equals("xml")) {
             return parserXMLFile(file);
         }
-        if (extension.equals("xml")) {
+        if (extension.equals("co")) {
             return parserCOFile(file);
         }
         return null;
@@ -111,6 +111,7 @@ public class ProcessGraph {
 
 
     public static GraphTable applyArcs(GraphTable graph, Long type, String file) {
+        System.out.print("Adding weight to the graph...");
         Long maxArcId = getMaxArcId(graph);
         BufferedReader br = null;
         Long fromId;
@@ -143,10 +144,11 @@ public class ProcessGraph {
                 e.printStackTrace();
             }
         }
+        System.out.println("added");
         return graph;
     }
 
-    private static Long getMaxArcId(GraphTable graph) {
+    public static Long getMaxArcId(GraphTable graph) {
         Long max = 0L;
         if (!graph.getWeightsMatrix().rowKeySet().isEmpty()) {
             List<Long> list = new ArrayList(graph.getWeightsMatrix().rowKeySet());
@@ -163,6 +165,7 @@ public class ProcessGraph {
      * @return the graph object
      */
     public static GraphTable applyWeights(GraphTable graph, String file) {
+        System.out.print("Adding weight to the graph...");
         try {
             File fXmlFile = new File(file);
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -188,6 +191,7 @@ public class ProcessGraph {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("added");
         return graph;
     }
 
@@ -631,10 +635,11 @@ public class ProcessGraph {
     }
 
     public static GraphTable normalizate(GraphTable graph) {
+        System.out.print("Normalizing...");
         Float value;
         Float min = Float.MAX_VALUE;
         for (Long type : graph.getWeightsMatrix().columnKeySet()) {
-            System.out.println("analizing type: " + type);
+            //System.out.println("analizing type: " + type);
             Float avg = 0F;
             Float sd = 0F;
             Float sumSquare = 0F;
@@ -648,7 +653,7 @@ public class ProcessGraph {
             avg = avg / n;
             sumSquare = sumSquare / n;
             sd = new Float(Math.sqrt(sumSquare.doubleValue() - (avg.doubleValue() * avg.doubleValue())));
-            System.out.println("normalizing: " + type);
+            //System.out.println("normalizing: " + type);
             for (Long arc : graph.getWeightsMatrix().column(type).keySet()) {
                 graph.getWeightsMatrix().put(arc, type, (graph.getWeightsMatrix().get(arc, type) - avg) / sd);
             }
@@ -663,14 +668,14 @@ public class ProcessGraph {
             }
         }
 
-        System.out.println("moving distributions");
+        //System.out.println("moving distributions");
         min = -1 * min;//min;
         for (Long r : graph.getWeightsMatrix().rowKeySet()) {
             for (Long c : graph.getWeightsMatrix().row(r).keySet()) {
                 graph.getWeightsMatrix().put(r, c, graph.getWeightsMatrix().get(r, c) + min);
             }
         }
-        System.out.println("normalization process ENS");
+        System.out.println("end");
         return graph;
     }
 

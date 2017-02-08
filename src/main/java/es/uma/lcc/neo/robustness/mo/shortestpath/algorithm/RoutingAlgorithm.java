@@ -11,7 +11,7 @@ import java.util.List;
  */
 public interface RoutingAlgorithm {
 
-    public void setGraph(GraphTable graph);
+    void setGraph(GraphTable graph);
 
-    public List<Node> getPath(Node start, Node end);
+    List<Node> getPath(Node start, Node end);
 }

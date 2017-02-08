@@ -24,7 +24,7 @@ public class Astar implements RoutingAlgorithm {
         this.target = target;
     }
 
-    public LinkedList<Node> getPath(Node from, Node to) {
+    public List<Node> getPath(Node from, Node to) {
         //System.out.println("A* getting path from:" + from + " to " + to);
         Set<Long> closedSet = new HashSet<Long>();
 

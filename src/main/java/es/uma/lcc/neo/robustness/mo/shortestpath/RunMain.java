@@ -4,6 +4,7 @@ import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.Astar;
 import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.DijkstraWeighted;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.robustness.mo.shortestpath.utilities.ProcessGraph;
 
 import java.io.BufferedReader;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by cintrano on 22/01/17.
@@ -33,12 +35,32 @@ public class RunMain {
             737470528L,
             2009776762L
     };
-    private final static int[] seed = new int[]{0,3, 23, 29, 67, 79,97,101, 139, 199, 211, 269, 311, 347,
-            389, 431, 461, 503, 569, 601, 607, 653, 691, 701,733, 739,761, 809, 811, 997};
+    private final static int[] seed = new int[]{0, 3, 23, 29, 67, 79, 97, 101, 139, 199, 211, 269, 311, 347, 389,
+            431, 461, 503, 569, 601, 607, 653, 691, 701, 733, 739, 761, 809, 811, 997};
 
     public static void main (String[] args) throws IOException, InterruptedException {
         System.out.println("=== START EXPERIMENTS ===");
 
+        if (args[0].equals("Normal")) {
+            System.out.println("................");
+            System.out.println("Loading graph...");
+            GraphTable graph = prepareSimpleColoradoGraph();
+
+            System.out.println("................");
+            System.out.println("................");
+            System.out.println("Running method...");
+            Set<NodePathSolution> solutions = NormalMethod.compute(graph,
+                    4, graph.getIntersections().get(8L), graph.getIntersections().get(720L));
+            //Set<NodePathSolution> solutions = NormalMethod.compute(graph,
+            //        4, graph.getIntersections().get(8L), graph.getIntersections().get(7324L));
+            System.out.println("... method end");
+            System.out.println("................");
+            System.out.println("\nPrint solutions:");
+            for (NodePathSolution s : solutions) {
+                System.out.println(s);
+            }
+
+        }
         if (args[0].equals("Google")) {
             GraphTable graph = prepareGraph();
 
@@ -157,9 +179,9 @@ public class RunMain {
             }
             System.out.println(sum0 + " " + sum1);
 
-            /*
+
             System.out.println("Dj");
-            DijkstraBiObjective dj = new DijkstraBiObjective(0L, 1L, 1);
+            dj = new DijkstraWeighted(0L, 1L, 1);
             dj.setGraph(graph);
             System.out.println("f" + 0);
             sum0 = 0F;
@@ -171,7 +193,7 @@ public class RunMain {
             }
             System.out.println(sum0 + " " + sum1);
             System.out.println("f" + 1);
-            dj = new DijkstraBiObjective(0L, 1L, 0);
+            dj = new DijkstraWeighted(0L, 1L, 0);
             dj.setGraph(graph);
             sum0 = 0F;
             sum1 = 0F;
@@ -181,7 +203,7 @@ public class RunMain {
                 sum1 += graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(path.get(i).getId(), path.get(i+1).getId()), 1L);
             }
             System.out.println(sum0 + " " + sum1);
-            */
+
             System.out.println("-------");
             /*
             es.uma.lcc.neo.cintrano.RobustShortestPathMain.executeAlgorithm(
@@ -266,9 +288,9 @@ public class RunMain {
 
     private static GraphTable prepareColoradoGraph() {
         GraphTable graph = ProcessGraph.parserFile("USA-road-d.COL.co");
-        System.out.println("Adding weight to the graph...");
+        //System.out.println("Adding weight to the graph...");
         graph = ProcessGraph.applyArcs(graph, 4L, "USA-road-d.COL.gr");
-        System.out.println("Adding weight to the graph...");
+        //System.out.println("Adding weight to the graph...");
         graph = ProcessGraph.applyArcs(graph, 0L, "USA-road-t.COL.gr");
         graph = ProcessGraph.computeNewWeight(graph, 1L, 5L, 4L, 0L);
 
@@ -287,6 +309,23 @@ public class RunMain {
         //ProcessGraph.printRandomWeights(graph, "wCOL4.xml", 0, 15, 2);
         graph = ProcessGraph.applyWeights(graph, "wCOL2.xml");
         graph = ProcessGraph.applyWeights(graph, "wCOL4.xml");
+        return graph;
+    }
+
+    private static GraphTable prepareSimpleColoradoGraph() {
+        GraphTable graph = ProcessGraph.parserFile("USA-road-d.COL.co");
+        graph = ProcessGraph.applyArcs(graph, 4L, "USA-road-d.COL.gr");
+        graph = ProcessGraph.applyArcs(graph, 0L, "USA-road-t.COL.gr");
+        graph = ProcessGraph.computeNewWeight(graph, 1L, 5L, 4L, 0L);
+
+        graph = ProcessGraph.normalizate(graph);
+
+        graph = ProcessGraph.applyWeights(graph, "wCOL2.xml");
+        graph = ProcessGraph.applyWeights(graph, "wCOL4.xml");
+
+        // Remove auxiliary columns
+        graph.getWeightsMatrix().column(4L).clear();
+        graph.getWeightsMatrix().column(5L).clear();
         return graph;
     }
 
