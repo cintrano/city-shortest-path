@@ -130,4 +130,22 @@ public class GraphTable {
 
         return fitness;
     }
+
+    public float getFitness(List<Long> path, Long weight) {
+        float fitness = 0f;
+        for (int i = 0; i < path.size() - 1; i++) {
+            Long arc = getAdjacencyMatrix().get(path.get(i), path.get(i + 1));
+
+            fitness += getWeightsMatrix().get(arc, weight);
+        }
+        return fitness;
+    }
+
+    public void setIntersections(Map<Long, Node> intersections) {
+        this.intersections = intersections;
+    }
+
+    public void setWeightsMatrix(Table<Long, Long, Float> weightsMatrix) {
+        this.weightsMatrix = weightsMatrix;
+    }
 }

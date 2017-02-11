@@ -74,7 +74,7 @@ public class Dijkstra implements RoutingAlgorithm {
         distances.put(destId, distance);
     }
 
-    private Map<Long, Long> getNeighbors(Long sourceId) {
+    protected Map<Long, Long> getNeighbors(Long sourceId) {
         // System.out.println("Id" + sourceId + " cols:" +
         // graph.getAdjacencyMatrix().containsColumn(sourceId) + " rows:"
         // + graph.getAdjacencyMatrix().containsColumn(sourceId));

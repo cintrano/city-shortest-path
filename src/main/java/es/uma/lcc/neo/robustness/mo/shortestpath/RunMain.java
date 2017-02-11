@@ -2,6 +2,7 @@ package es.uma.lcc.neo.robustness.mo.shortestpath;
 
 import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.Astar;
 import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.DijkstraWeighted;
+import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.Pulse;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
@@ -40,6 +41,32 @@ public class RunMain {
 
     public static void main (String[] args) throws IOException, InterruptedException {
         System.out.println("=== START EXPERIMENTS ===");
+
+        if (args[0].equals("Pulse")) {
+            System.out.println("................");
+            System.out.println("Loading graph...");
+            GraphTable graph = prepareSimpleColoradoGraph();
+
+            System.out.println("................");
+            System.out.println("................");
+            System.out.println("Running method...");
+
+            Pulse pulse = new Pulse();
+            pulse.setGraph(graph);
+            Set<List<Long>> solutions = pulse.pulseAlgorithm(8L, 720L);
+
+            System.out.println("NUMBER OF SOLUTIONS: " + solutions.size());
+            System.out.println("... method end");
+            System.out.println("................");
+            System.out.println("\nPrint solutions:");
+            for (List<Long> s : solutions) {
+                for (Long l : s) {
+                    System.out.print(l + " ");
+                }
+                System.out.println();
+            }
+
+        }
 
         if (args[0].equals("Normal")) {
             System.out.println("................");
