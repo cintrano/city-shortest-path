@@ -118,10 +118,10 @@ public class GraphTable {
         return upperBound;
     }
 
-    public float[] getFitness(List<Node> path) {
+    public float[] getFitness(List<Long> path) {
         float[] fitness = new float[getWeightsMatrix().columnKeySet().size()];
         for (int i = 0; i < path.size() - 1; i++) {
-            Long arc = getAdjacencyMatrix().get(path.get(i).getId(), path.get(i + 1).getId());
+            Long arc = getAdjacencyMatrix().get(path.get(i), path.get(i + 1));
 
             for (Long w : getWeightsMatrix().columnKeySet()) {
                 fitness[w.intValue()] += getWeightsMatrix().get(arc, w);
@@ -158,7 +158,6 @@ public class GraphTable {
                 fitness[w.intValue()] += getWeightsMatrix().get(arc, w);
             }
         }
-
         return fitness;
     }
 }

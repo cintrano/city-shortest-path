@@ -3,7 +3,6 @@ package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
-import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 
 import java.util.*;
@@ -96,7 +95,7 @@ public class PulseMO {
         algorithm.setGraph(graph);
 
         while (i < visited.length) {
-            List<Node> path = algorithm.getPath(graph.getIntersections().get(end), graph.getIntersections().get(i + 1L));
+            List<Long> path = algorithm.getPath(end, i + 1L);
             markSubPaths(path, visited);
             addFitness(graph, path, type);
 
@@ -111,7 +110,7 @@ public class PulseMO {
             weight[lab.intValue()] = 1;
             algorithm.setGraph(graph);
             algorithm.setWeights(weight);
-            List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(end));
+            List<Long> path = algorithm.getPath(start, end);
             float[] fitness = graph.getFitness(path);
             for (int i = 0; i < fitness.length; i++) {
                 if (zn[i] < fitness[i]) {
@@ -121,29 +120,29 @@ public class PulseMO {
         }
     }
 
-    private void markSubPaths(List<Node> path, boolean[] visited) {
-        for (Node v : path) {
-            visited[(int) (v.getId() - 1)] = true;
+    private void markSubPaths(List<Long> path, boolean[] visited) {
+        for (Long v : path) {
+            visited[(int) (v - 1)] = true;
         }
     }
 
-    private void addFitness(GraphTable graph, List<Node> path, Long type) {
+    private void addFitness(GraphTable graph, List<Long> path, Long type) {
         Float[] fitness;
         float sum = 0f;
         //float[] sumInv = new float[2];
         for (int i = 1; i < path.size(); i++) {
-            if (cInf.containsKey(path.get(i).getId())) {
-                fitness = cInf.get(path.get(i).getId());
+            if (cInf.containsKey(path.get(i))) {
+                fitness = cInf.get(path.get(i));
             } else {
                 fitness = new Float[objectivesNumber];
                 for (int j = 0; j < fitness.length; j++) {
                     fitness[i] = 0F;
                 }
             }
-            Long arc = graph.getAdjacencyMatrix().get(path.get(i-1).getId(), path.get(i).getId());
+            Long arc = graph.getAdjacencyMatrix().get(path.get(i-1), path.get(i));
             sum += graph.getWeightsMatrix().get(arc, type);
             fitness[type.intValue()] = sum;
-            cInf.put(path.get(i).getId(), fitness);
+            cInf.put(path.get(i), fitness);
         }
     }
 
@@ -235,18 +234,22 @@ public class PulseMO {
     }
 
     private boolean isAcyclic(Long v, List<Long> p) {
+        /*
         for (Long node : p) {
             if (v.equals(node)) {
                 return false;
             }
         }
         return true;
+        */
+        return !p.contains(v);
     }
 
     private boolean checkNadirPoint(Long v, float[] c) {
+        Float[] cost = cInf.get(v);
         for (int i = 0; i < c.length; i++) {
             //if (c[i] > cSup(v, i)) {
-            if (c[i] + cInf.get(v)[i] > zn[i]) {
+            if (c[i] + cost[i] > zn[i]) {
                 return true;
             }
         }
