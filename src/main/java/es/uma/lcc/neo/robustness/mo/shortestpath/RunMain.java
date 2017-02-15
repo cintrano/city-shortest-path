@@ -51,16 +51,24 @@ public class RunMain {
             System.out.println("................");
             System.out.println("Running method...");
 
+            long timeInit = System.currentTimeMillis();
             Pulse pulse = new Pulse();
             pulse.setGraph(graph);
-            Set<List<Long>> solutions = pulse.pulseAlgorithm(8L, 720L);
+            long timeStart = System.currentTimeMillis();
+            Set<NodePathSolution> solutions = pulse.pulseAlgorithm(8L, 720L);
+            long timeEnd = System.currentTimeMillis();
 
             System.out.println("NUMBER OF SOLUTIONS: " + solutions.size());
             System.out.println("... method end");
+
+            System.out.println("Initialization time: \t" + (timeStart - timeInit));
+            System.out.println("Execution time: \t" + (timeEnd - timeStart));
+            System.out.println("... method end");
+
             System.out.println("................");
             System.out.println("\nPrint solutions:");
-            for (List<Long> s : solutions) {
-                for (Long l : s) {
+            for (NodePathSolution s : solutions) {
+                for (float l : s.getObjectives()) {
                     System.out.print(l + " ");
                 }
                 System.out.println();

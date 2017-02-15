@@ -25,6 +25,14 @@ public class NodePathSolution {
         }
     }
 
+    public NodePathSolution(GraphTable graphTable, List<Long> variables) {
+        this.variables = new Long[variables.size()];
+        for (int i = 0; i < variables.size(); i++) {
+            this.variables[i] = variables.get(i);
+        }
+        this.objectives = graphTable.getFitness(this.variables);
+    }
+
     public float[] getObjectives() {
         return objectives;
     }

@@ -148,4 +148,17 @@ public class GraphTable {
     public void setWeightsMatrix(Table<Long, Long, Float> weightsMatrix) {
         this.weightsMatrix = weightsMatrix;
     }
+
+    public float[] getFitness(Long[] path) {
+        float[] fitness = new float[getWeightsMatrix().columnKeySet().size()];
+        for (int i = 0; i < path.length - 1; i++) {
+            Long arc = getAdjacencyMatrix().get(path[i], path[i + 1]);
+
+            for (Long w : getWeightsMatrix().columnKeySet()) {
+                fitness[w.intValue()] += getWeightsMatrix().get(arc, w);
+            }
+        }
+
+        return fitness;
+    }
 }
