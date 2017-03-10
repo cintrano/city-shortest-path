@@ -1,4 +1,4 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra;
 
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 

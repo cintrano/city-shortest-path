@@ -23,6 +23,8 @@ public class GraphTable {
     private Map<Long, Float> lowerBound;
     private Map<Long, Float> upperBound;
 
+    private Map<Long,Long> mapping;
+
     public GraphTable() {
         //graph = new HashMap<Node, Map<Node,Long>>();
         //weights = new HashMap<Long, Set<Weight>>();
@@ -131,6 +133,19 @@ public class GraphTable {
         return fitness;
     }
 
+    public float[] getFitness(List<Node> path, String s) {
+        float[] fitness = new float[getWeightsMatrix().columnKeySet().size()];
+        for (int i = 0; i < path.size() - 1; i++) {
+            Long arc = getAdjacencyMatrix().get(mapping.get(path.get(i).getId()), mapping.get(path.get(i + 1).getId()));
+
+            for (Long w : getWeightsMatrix().columnKeySet()) {
+                fitness[w.intValue()] += getWeightsMatrix().get(arc, w);
+            }
+        }
+
+        return fitness;
+    }
+
     public float getFitness(List<Long> path, Long weight) {
         float fitness = 0f;
         for (int i = 0; i < path.size() - 1; i++) {
@@ -159,5 +174,13 @@ public class GraphTable {
             }
         }
         return fitness;
+    }
+
+    public void setMapping(Map<Long,Long> mapping) {
+        this.mapping = mapping;
+    }
+
+    public Map<Long, Long> getMapping() {
+        return mapping;
     }
 }

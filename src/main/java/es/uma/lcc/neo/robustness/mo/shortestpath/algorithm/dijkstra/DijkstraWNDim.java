@@ -1,8 +1,8 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra;
 
 import java.util.Map.Entry;
 
-public class DijkstraWNDim extends DijkstraSimple {
+public class DijkstraWNDim extends Dijkstra {
 
     private Long[] labs;
     private float[] weights;

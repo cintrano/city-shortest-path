@@ -1,4 +1,4 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.astar;
 
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
@@ -10,26 +10,26 @@ import java.util.*;
  * Created by Christian Cintrano on 16/01/17.
  * A* algorithm
  */
-public class Astar implements RoutingAlgorithm {
+public class Astar {
 
     private GraphTable graph;
-    private Long target;
+    private Float target;
 
     public void setGraph(GraphTable graph) {
         this.graph = graph;
         //fillG();
         //fillH();
     }
-    public void setTarget(Long target) {
+    public void setTarget(Float target) {
         this.target = target;
     }
 
-    public List<Node> getPath(Node from, Node to) {
+    public List<Node> getPath(Long from, Long to) {
         //System.out.println("A* getting path from:" + from + " to " + to);
         Set<Long> closedSet = new HashSet<Long>();
 
         Set<Long> openSet = new HashSet<Long>();
-        openSet.add(from.getId());
+        openSet.add(from);
 
         Map<Long, Long> cameFrom = new HashMap<Long, Long>();
 
@@ -38,7 +38,7 @@ public class Astar implements RoutingAlgorithm {
             gScore.put(node, Float.MAX_VALUE);
         }
 
-        gScore.put(from.getId(), 0F);
+        gScore.put(from, 0F);
 
         Map<Long, Float> fScore = new HashMap<Long, Float>();
         for (Long node : graph.getAdjacencyMatrix().rowKeySet()) {////graph.getIntersections().keySet()) {
@@ -46,7 +46,7 @@ public class Astar implements RoutingAlgorithm {
             ////System.out.println("M  " + fScore.get(node));
         }
 
-        fScore.put(from.getId(), heuristicCostEstimate(from.getId(), to));
+        fScore.put(from, heuristicCostEstimate(from, to));
 
         Long current = null;
         Float currentFValue = Float.MAX_VALUE;
@@ -63,7 +63,7 @@ public class Astar implements RoutingAlgorithm {
             }
             //System.out.println(current);
 
-            if (current.equals(to.getId())) {
+            if (current.equals(to)) {
                 return reconstructPath(cameFrom, current);
             }
 
@@ -141,8 +141,8 @@ public class Astar implements RoutingAlgorithm {
     }
 
     private Float distBetween(Long current, Long neighbor) {
-        return (graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(current, neighbor), 0L) * 0.5F) +
-                (graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(current, neighbor), 1L) * 0.5F);
+        return (graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(current, neighbor), 0L) * target) +
+                (graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(current, neighbor), 1L) * (1 - target));
     }
 
     private LinkedList<Node> reconstructPath(Map<Long, Long> cameFrom, Long current) {
@@ -163,12 +163,13 @@ public class Astar implements RoutingAlgorithm {
         return output;
     }
 
-    private Float heuristicCostEstimate(Long from, Node to) {
+    private Float heuristicCostEstimate(Long from, Long to) {
         Node fromNode = graph.getIntersections().get(from);
-        Double distance = Math.sqrt((to.getLatitude().doubleValue() - fromNode.getLatitude().doubleValue()) * (to.getLatitude().doubleValue() - fromNode.getLatitude().doubleValue()) +
-                (to.getLongitude().doubleValue() - fromNode.getLongitude().doubleValue()) * (to.getLongitude().doubleValue() - fromNode.getLongitude().doubleValue()));
-        Double speed = findSpeed(graph, from);
-        distance = distance / speed;//graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(from, to.getId()), 5L);
+        Node toNode = graph.getIntersections().get(to);
+        Double distance = Math.sqrt((toNode.getLatitude().doubleValue() - fromNode.getLatitude().doubleValue()) * (toNode.getLatitude().doubleValue() - fromNode.getLatitude().doubleValue()) +
+                (toNode.getLongitude().doubleValue() - fromNode.getLongitude().doubleValue()) * (toNode.getLongitude().doubleValue() - fromNode.getLongitude().doubleValue()));
+        //Double speed = findSpeed(graph, from);
+        //distance = distance / speed;//graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(from, to.getId()), 5L);
         return distance.floatValue();
     }
 

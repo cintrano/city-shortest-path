@@ -148,7 +148,7 @@ public class ProcessGraph {
         return graph;
     }
 
-    public static Long getMaxArcId(GraphTable graph) {
+    private static Long getMaxArcId(GraphTable graph) {
         Long max = 0L;
         if (!graph.getWeightsMatrix().rowKeySet().isEmpty()) {
             List<Long> list = new ArrayList(graph.getWeightsMatrix().rowKeySet());
@@ -212,8 +212,8 @@ public class ProcessGraph {
             }
         }
 
-        for (int j = 0; j < labels.length; j++) {
-            System.out.println("L: " + labels[j]);
+        for (Long label : labels) {
+            System.out.println("L: " + label);
         }
 
         for (Long node : ids.keySet()) {
@@ -221,11 +221,11 @@ public class ProcessGraph {
         }
 
         Map<Long, Integer> results = new HashMap<Long, Integer>(); // <nodeId, numElementInComponent>
-        for (int j = 0; j < labels.length; j++) {
-            if (results.get(labels[j]) == null) {
-                results.put(labels[j], 1);
+        for (Long label : labels) {
+            if (results.get(label) == null) {
+                results.put(label, 1);
             } else {
-                results.put(labels[j], results.get(labels[j]) + 1);
+                results.put(label, results.get(label) + 1);
             }
         }
         System.out.println("Connected Components");
@@ -235,10 +235,10 @@ public class ProcessGraph {
     }
 
     /**
-     *
-     * @param oldLabel
-     * @param newLabel
-     * @param labels
+     * Rename a label
+     * @param oldLabel old label name
+     * @param newLabel new label name
+     * @param labels list of labels to be changed
      */
     private static void changeKey(Long oldLabel, Long newLabel, Long[] labels) {
         System.out.print("Changed");
@@ -256,12 +256,12 @@ public class ProcessGraph {
         Map<Integer, Long> ids = new HashMap<Integer, Long>(); // <key, nodeID>
         Map<Long, Integer> nodes = new HashMap<Long, Integer>(); // <key, nodeID>
         //Long[] ids = new Long[graph.getIntersections().size()];
-        Long[] labels = new Long[graph.getIntersections().size()];
+        //Long[] labels = new Long[graph.getIntersections().size()];
         int i = 0;
         for (Long l : graph.getIntersections().keySet()) {
             ids.put(i, l);
             nodes.put(l, i);
-            labels[i] = l;
+            //labels[i] = l;
             i++;
         }
 
@@ -275,7 +275,7 @@ public class ProcessGraph {
         // Fill vertices in stack according to their finishing
         // times
         for (i = 0; i < visited.length; i++)
-            if (visited[i] == false)
+            if (!visited[i])
                 fillOrder(i, visited, stack, graph, ids, nodes, true);
 
         // Create a reversed graph
@@ -286,12 +286,12 @@ public class ProcessGraph {
             visited[i] = false;
 
         // Now process all vertices in order defined by Stack
-        while (stack.empty() == false) {
+        while (!stack.empty()) {
             // Pop a vertex from stack
             int v = (Integer) stack.pop();
 
             // Print Strongly connected component of the popped vertex
-            if (visited[v] == false) {
+            if (!visited[v]) {
                 DFSUtil(v, visited, graph, ids, nodes, false);
                 System.out.println();
             }
@@ -299,8 +299,8 @@ public class ProcessGraph {
     }
 
     // A recursive function to print DFS starting from v
-    static void DFSUtil(int v, boolean visited[], final GraphTable graph, final Map<Integer, Long> ids,
-                        final Map<Long, Integer> nodes, boolean order) {
+    private static void DFSUtil(int v, boolean visited[], final GraphTable graph, final Map<Integer, Long> ids,
+                                final Map<Long, Integer> nodes, boolean order) {
         // Mark the current node as visited and print it
         visited[v] = true;
         System.out.print(ids.get(v) + " ");
@@ -333,7 +333,7 @@ public class ProcessGraph {
     }
 
 
-    static void fillOrder(int v, boolean visited[], Stack stack, final GraphTable graph, final Map<Integer,
+    private static void fillOrder(int v, boolean visited[], Stack stack, final GraphTable graph, final Map<Integer,
             Long> ids, final Map<Long, Integer> nodes, boolean order) {
         // Mark the current node as visited and print it
         visited[v] = true;
@@ -348,13 +348,13 @@ public class ProcessGraph {
                 //    System.out.print(aux + " ");
                 //}
                 //System.out.println();
-                if (nodes.get(n)!= null && !visited[nodes.get(n).intValue()])
+                if (nodes.get(n)!= null && !visited[nodes.get(n)])
                     fillOrder(nodes.get(n), visited, stack, graph, ids, nodes, order);
             }
         } else {
             graph.getAdjacencyMatrix().column(ids.get(v));
             for (Long n : graph.getAdjacencyMatrix().column(ids.get(v)).keySet()) {
-                if (nodes.get(n)!= null && !visited[nodes.get(n).intValue()])
+                if (nodes.get(n)!= null && !visited[nodes.get(n)])
                     fillOrder(nodes.get(n), visited, stack, graph, ids, nodes, order);
             }
         }
@@ -396,15 +396,15 @@ public class ProcessGraph {
             }
 
             List<Long> convexComponent = new ArrayList<Long>();
-            for (int i = 0; i < bestCC.length; i++) {
-                convexComponent.add(Long.parseLong(bestCC[i]));
+            for (String aBestCC : bestCC) {
+                convexComponent.add(Long.parseLong(aBestCC));
             }
 
             // remove node
-            Iterator iter = graph.getIntersections().keySet().iterator();
-            while (iter.hasNext()) {
-                if (!convexComponent.contains(iter.next())) {
-                    iter.remove();
+            Iterator iterator = graph.getIntersections().keySet().iterator();
+            while (iterator.hasNext()) {
+                if (!convexComponent.contains(iterator.next())) {
+                    iterator.remove();
                 }
             }
             Table<Long, Long, Long> adjacencyMatrix = HashBasedTable.create();
@@ -487,7 +487,11 @@ public class ProcessGraph {
             e.printStackTrace();
             // report
         } finally {
-            try {writer.close();} catch (Exception ex) {ex.printStackTrace();}
+            try {
+                if (writer != null) {
+                    writer.close();
+                }
+            } catch (Exception ex) {ex.printStackTrace();}
         }
 
         System.out.println("...wrote file");
@@ -634,7 +638,7 @@ public class ProcessGraph {
         }
     }
 
-    public static GraphTable normalizate(GraphTable graph) {
+    public static GraphTable normalize(GraphTable graph) {
         System.out.print("Normalizing...");
         Float value;
         Float min = Float.MAX_VALUE;
@@ -652,7 +656,7 @@ public class ProcessGraph {
             }
             avg = avg / n;
             sumSquare = sumSquare / n;
-            sd = new Float(Math.sqrt(sumSquare.doubleValue() - (avg.doubleValue() * avg.doubleValue())));
+            sd = (float) Math.sqrt(sumSquare.doubleValue() - (avg.doubleValue() * avg.doubleValue()));
             //System.out.println("normalizing: " + type);
             for (Long arc : graph.getWeightsMatrix().column(type).keySet()) {
                 graph.getWeightsMatrix().put(arc, type, (graph.getWeightsMatrix().get(arc, type) - avg) / sd);
@@ -684,9 +688,92 @@ public class ProcessGraph {
         Float value;
         for (Long arc : graph.getWeightsMatrix().rowKeySet()) {
             value = graph.getWeightsMatrix().get(arc, w1) / graph.getWeightsMatrix().get(arc, w2);
-            graph.getWeightsMatrix().put(arc, type, -1 * value);
-            graph.getWeightsMatrix().put(arc, inverseType, value);
+            graph.getWeightsMatrix().put(arc, type, value);
+            graph.getWeightsMatrix().put(arc, inverseType, -1 * value);
         }
+        return graph;
+    }
+
+    public static GraphTable applyMapping(GraphTable graph, String file) {
+        System.out.print("Adding mapping to the graph...");
+        BufferedReader br = null;
+        Map<Long, Long> mapping = new HashMap<Long, Long>();
+        try {
+            br = new BufferedReader(new FileReader(file));
+            String line = br.readLine();
+
+            while (line != null) {
+                String[] array = line.split(" ");
+                mapping.put(Long.parseLong(array[0]), Long.parseLong(array[1]));
+                line = br.readLine();
+            }
+            graph.setMapping(mapping);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) try {
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("added");
+        return graph;
+    }
+
+    public static void printMapping(GraphTable graph) {
+        Map<Long, Long> mapping = new HashMap<>();
+        Long index = 1L;
+        for (Long l : graph.getIntersections().keySet()) {
+            mapping.put(l, index);
+            index++;
+        }
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter("mapping-malaga.txt"));
+            String line;
+            for (Long k : mapping.keySet()) {
+                line = k + " " + mapping.get(k) + "\n";
+                out.write(line);
+            }
+
+        } catch (IOException e) {
+            // error processing code
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply the mapping to the intersections and adjacencyMatrix
+     * @param graph the graph
+     * @return the graph
+     */
+    public static GraphTable fixVertexIndex(GraphTable graph) {
+        Table<Long, Long, Long> newAdjacencyMatrix = HashBasedTable.create();
+        Map<Long, Node> newIntersections = new HashMap<Long, Node>();
+
+        // ya tengo mapping
+        for (Long l : graph.getIntersections().keySet()) {
+            newIntersections.put(graph.getMapping().get(l), graph.getIntersections().get(l));
+        }
+        for (Long r :
+                graph.getAdjacencyMatrix().rowKeySet()) {
+            for (Long c :
+                    graph.getAdjacencyMatrix().row(r).keySet()) {
+                newAdjacencyMatrix.put(graph.getMapping().get(r), graph.getMapping().get(c), graph.getAdjacencyMatrix().get(r, c));
+            }
+        }
+        graph.setIntersections(newIntersections);
+        graph.setAdjacencyMatrix(newAdjacencyMatrix);
         return graph;
     }
 }

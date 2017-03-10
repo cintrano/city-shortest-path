@@ -1,6 +1,5 @@
 package es.uma.lcc.neo.robustness.mo.shortestpath;
 
-import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.Dijkstra;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 

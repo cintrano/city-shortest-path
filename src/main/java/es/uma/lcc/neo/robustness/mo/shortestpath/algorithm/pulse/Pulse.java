@@ -1,7 +1,8 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.pulse;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
@@ -12,7 +13,7 @@ import java.util.*;
  * Created by Cintrano on 8/02/17.
  * Duque, Lozano & Medaglia, An exact method for the biobjective shortest path problem for large-scale road networks
  */
-public class Pulse implements RoutingAlgorithm {
+public class Pulse {
 
 
     private GraphTable graph;
@@ -46,35 +47,14 @@ public class Pulse implements RoutingAlgorithm {
         this.start = start;
         this.end = end;
         List<Long> P = new ArrayList<Long>();
-        float c = 0;
-        float t = 0;
+        float c = 0f;
+        float t = 0f;
         System.out.println("___s0___");
         initialization(graph);
         System.out.println("___s1___");
         pulse(start, c, t, P);
         System.out.println("___s2___");
         return Xe;
-    }
-
-    private void initializationFuerzaBruta(GraphTable graph) {
-        for (Long v : graph.getIntersections().keySet()) {
-            Float[] fitness = new Float[4];
-            DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, 1);
-            algorithm.setGraph(graph);
-            List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(v));
-            float[] values = graph.getFitness(path);
-            fitness[0] = values[0];
-            fitness[2] = values[1];
-
-            algorithm = new DijkstraWeighted(0L, 1L, 0);
-            algorithm.setGraph(graph);
-            path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(v));
-            values = graph.getFitness(path);
-            fitness[1] = values[0];
-            fitness[3] = values[1];
-
-            extremesPaths.put(v, fitness);
-        }
     }
 
     private void initialization(GraphTable graph) {
@@ -86,7 +66,6 @@ public class Pulse implements RoutingAlgorithm {
         initialization(graphInv, 1L);
         System.out.println("___i2___");
         // Vstart -> Vend
-        System.out.print("start " + extremesPaths.get(start)[0] + " " +  + extremesPaths.get(start)[1] + " " +  + extremesPaths.get(start)[2] + " " +  + extremesPaths.get(start)[3]);
         float C = getCLimit(graph);
         System.out.println("___i3___");
         float T = getTLimit(graph);
@@ -96,8 +75,8 @@ public class Pulse implements RoutingAlgorithm {
         Map<Long, Float[]> newExtremesPaths = new HashMap<Long, Float[]>();
         for (Long v : extremesPaths.keySet()) {
             Float[] value = extremesPaths.get(v);
-            value[0] = C - value[1];
-            value[2] = T - value[3];
+            value[0] = C - value[1].floatValue();
+            value[2] = T - value[3].floatValue();
             newExtremesPaths.put(v, value);
         }
         System.out.println("___i5___");
@@ -136,7 +115,7 @@ public class Pulse implements RoutingAlgorithm {
 //            System.out.print(i + " ");
             while (i < visited.length) {
 //                System.out.print("_");
-                List<Node> path = algorithm.getPath(graph.getIntersections().get(end), graph.getIntersections().get(i + 1L));
+                List<Node> path = algorithm.getPath(end, i + 1L);
 //                System.out.print("_");
                 markSubPaths(path, visited);
 //                System.out.print("-");
@@ -153,22 +132,22 @@ public class Pulse implements RoutingAlgorithm {
     private float getCLimit(GraphTable graph) {
         DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, (float) 0);
         algorithm.setGraph(graph);
-        List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(end));
-        float[] fitness = graph.getFitness(path);
+        List<Node> path = algorithm.getPath(start, end);
+        float[] fitness = graph.getFitness(path, "fool");
         return fitness[0];
     }
     private float getTLimit(GraphTable graph) {
         DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, (float) 1);
         algorithm.setGraph(graph);
-        List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(end));
-        float[] fitness = graph.getFitness(path);
+        List<Node> path = algorithm.getPath(start, end);
+        float[] fitness = graph.getFitness(path, "fool");
         return fitness[1];
     }
     private float getLimit(GraphTable graph, int i) {
         DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, (float) i);
         algorithm.setGraph(graph);
-        List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(end));
-        float[] fitness = graph.getFitness(path);
+        List<Node> path = algorithm.getPath(start, end);
+        float[] fitness = graph.getFitness(path, "fool");
         return fitness[i];
     }
     /*
@@ -251,9 +230,15 @@ public class Pulse implements RoutingAlgorithm {
 
     private void pulse(Long v, float c, float t, List<Long> P) {
         if (isAcyclic(v, P)) {
+//            System.out.println("isAcyclic " + v );
+//            System.out.println(c + " " + t );
+//            System.out.println(extremesPaths.get(v)[0] + " " +  + extremesPaths.get(v)[1] + " " +  + extremesPaths.get(v)[2] + " " +  + extremesPaths.get(v)[3]);
             if (!checkNadirPoint(v, c, t)) {
+//                System.out.println("\tcheckNadirPoint " + v);
                 if (!checkEfficientSet(v, c, t)) {
+//                    System.out.println("\t\tcheckEfficientSet " + v);
                     if (!checkLabels(v, c, t)) {
+//                        System.out.println("\t\t\tcheckLabels " + v);
                         //store(c, t);
                         store(v, c, t);
                         List<Long> Pnew = union(P, v);
@@ -262,11 +247,15 @@ public class Pulse implements RoutingAlgorithm {
                             cP = c + c(v, vj);
                             tP = t + t(v, vj);
                             if (vj.equals(end)) {
+//                                System.out.println("pulseend " + vj);
                                 pulseEnd(vj, cP, tP, Pnew);
                             } else {
                                 pulse(vj, cP, tP, Pnew);
                             }
                         }
+                    }
+                    else {
+//                        System.out.println("\t\t\tNOOOO " + v);
                     }
                 }
             }
@@ -349,13 +338,12 @@ public class Pulse implements RoutingAlgorithm {
 
 
     private boolean checkEfficientSet(Long v, float c, float t) {
-        boolean prune = false;
         for (NodePathSolution x : Xe) {
             if (c(x) <= c + cInf(v) && t(x) <= t + tInf(v)) {
-                prune = true;
+                return true;
             }
         }
-        return prune;
+        return false;
     }
 
     private float c(List<Long> x) {
@@ -375,17 +363,16 @@ public class Pulse implements RoutingAlgorithm {
     }
 
     private boolean checkLabels(Long v, float c, float t) {
-        boolean prune = false;
         /*
         TODO terminal este check
          */
         if (L.get(v) != null) {
             for (Float[] costs : L.get(v)) {
                 if (costs[0] <= c && costs[1] <= t) {
-                    prune = true;
+                    return true;
                 }
             }
         }
-        return prune;
+        return false;
     }
 }

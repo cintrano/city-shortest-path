@@ -1,22 +1,20 @@
 package es.uma.lcc.neo.robustness.mo.shortestpath;
 
-import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.Astar;
-import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.DijkstraWeighted;
-import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.Pulse;
+import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.astar.Astar;
+import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
+import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.pulse.PulseMO;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.robustness.mo.shortestpath.utilities.ProcessGraph;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.management.ManagementFactory;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Created by cintrano on 22/01/17.
+ * Created by Christian Cintrano on 22/01/17.
+ * Main Class
  */
 public class RunMain {
 
@@ -36,44 +34,57 @@ public class RunMain {
             737470528L,
             2009776762L
     };
+
     private final static int[] seed = new int[]{0, 3, 23, 29, 67, 79, 97, 101, 139, 199, 211, 269, 311, 347, 389,
             431, 461, 503, 569, 601, 607, 653, 691, 701, 733, 739, 761, 809, 811, 997};
+
 
     public static void main (String[] args) throws IOException, InterruptedException {
         System.out.println("=== START EXPERIMENTS ===");
 
-        if (args[0].equals("Pulse")) {
-            System.out.println("................");
-            System.out.println("Loading graph...");
-            GraphTable graph = prepareSimpleColoradoGraph();
-
-            System.out.println("................");
-            System.out.println("................");
-            System.out.println("Running method...");
-
-            long timeInit = System.currentTimeMillis();
-            Pulse pulse = new Pulse();
-            pulse.setGraph(graph);
-            long timeStart = System.currentTimeMillis();
-            Set<NodePathSolution> solutions = pulse.pulseAlgorithm(8L, 720L);
-            long timeEnd = System.currentTimeMillis();
-
-            System.out.println("NUMBER OF SOLUTIONS: " + solutions.size());
-            System.out.println("... method end");
-
-            System.out.println("Initialization time: \t" + (timeStart - timeInit));
-            System.out.println("Execution time: \t" + (timeEnd - timeStart));
-            System.out.println("... method end");
-
-            System.out.println("................");
-            System.out.println("\nPrint solutions:");
-            for (NodePathSolution s : solutions) {
-                for (float l : s.getObjectives()) {
-                    System.out.print(l + " ");
-                }
-                System.out.println();
+        if (args[0].equals("PrepareGraph")) {
+            GraphTable graph = prepareGraph();
+            //ProcessGraph.printRandomWeights(graph, "wVar0.xml", 0L, 0.9f, 1.1f, 2);
+            //ProcessGraph.printRandomWeights(graph, "wVar1.xml", 1L, 0.9f, 1.1f, 3);
+//            graph = fixVertexIndex(graph);
+            ProcessGraph.printMapping(graph);
+        }
+        if (args.length == 3) {
+            GraphTable graph = null;
+            // Map
+            if (args[0].equals("Malaga")) {
+                System.out.println("Loading graph...");
+                graph = prepareGraph();
+                graph = ProcessGraph.fixVertexIndex(graph);
+            } else if (args[0].equals("Colorado")) {
+                graph = prepareSimpleColoradoGraph();
             }
 
+            // Points
+            System.out.print("Reading points...");
+            Long[] points = null;
+            if (!args[2].equals("default")) {
+                points = readPoints(args[2]);
+            } else if (args[0].equals("Colorado") && args[2].equals("default")) {
+                points = new Long[]{8L, 720L};
+            }
+
+            // Algorithm
+            if (points != null) {
+                System.out.println(points[0] + " " + points[1]);
+                if (Objects.equals(args[1], "PULSE")) {
+                    System.out.println("Run PULSE...");
+                    rPulse(graph, points);
+                }
+                if (Objects.equals(args[1], "Dijkstra")) {
+                    System.out.println("Run Dijkstra...");
+                    rDijkstra(graph, points);
+                }
+                if (Objects.equals(args[1], "Astar")) {
+                    System.out.println("Run A*...");
+                    rAstar(graph, points);
+                }
+            }
         }
 
         if (args[0].equals("Normal")) {
@@ -84,16 +95,16 @@ public class RunMain {
             System.out.println("................");
             System.out.println("................");
             System.out.println("Running method...");
-            Set<NodePathSolution> solutions = NormalMethod.compute(graph,
-                    4, graph.getIntersections().get(8L), graph.getIntersections().get(720L));
+//            Set<NodePathSolution> solutions = NormalMethod.compute(graph,
+//                    4, graph.getIntersections().get(8L), graph.getIntersections().get(720L));
             //Set<NodePathSolution> solutions = NormalMethod.compute(graph,
             //        4, graph.getIntersections().get(8L), graph.getIntersections().get(7324L));
             System.out.println("... method end");
             System.out.println("................");
             System.out.println("\nPrint solutions:");
-            for (NodePathSolution s : solutions) {
-                System.out.println(s);
-            }
+//            for (NodePathSolution s : solutions) {
+//                System.out.println(s);
+//            }
 
         }
         if (args[0].equals("Google")) {
@@ -160,12 +171,12 @@ public class RunMain {
             System.out.println("S " + seed);
 */
             System.out.println("Start algorithm...");
-
+/*
             System.out.println("A star");
             Astar astar = new Astar();
             astar.setGraph(graph);
             System.out.println("f01");
-            astar.setTarget(0L);
+            astar.setTarget(0F);
             Float sum0 = 0F;
             Float sum1 = 0F;
             List<Node> path = astar.getPath(graph.getIntersections().get(8L), graph.getIntersections().get(720L));
@@ -200,7 +211,7 @@ public class RunMain {
             }
             System.out.println(sum0 + " " + sum1);
 */
-
+/*
             System.out.println("Dj");
             DijkstraWeighted dj = new DijkstraWeighted(0L, 1L, 0.5f);
             dj.setGraph(graph);
@@ -321,6 +332,209 @@ public class RunMain {
         System.out.println("=== END EXPERIMENTS ===");
     }
 
+    private static Long[] readPoints(String idString) {
+        int id = Integer.parseInt(idString);
+        Long[] points = null;
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader("input.data"));
+            String line = br.readLine();
+
+            int count = 0;
+            while (line != null && count <= id) {
+                if (count == id) {
+                    String[] array = line.split(" ");
+                    points = new Long[]{Long.parseLong(array[0]), Long.parseLong(array[1])};
+                }
+                count++;
+                line = br.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) try {
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return points;
+    }
+
+
+
+
+
+
+
+    private static void rDijkstra(GraphTable graph, Long[] randomPoints) {
+        long timeInit = System.currentTimeMillis();
+        DijkstraWeighted dj = new DijkstraWeighted(0L, 1L, 1f);
+        dj.setGraph(graph);
+        long timeStart = System.currentTimeMillis();
+        List<Node> path = dj.getPath(randomPoints[0], randomPoints[1]);
+        long timeEnd = System.currentTimeMillis();
+        //sol.add(new NodePathSolution(graph.getFitness(path, ""), path));
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Dijkstra", 0);
+
+        timeInit = System.currentTimeMillis();
+        dj = new DijkstraWeighted(0L, 1L, 0f);
+        dj.setGraph(graph);
+        timeStart = System.currentTimeMillis();
+        path = dj.getPath(randomPoints[0], randomPoints[1]);
+        //sol.add(new NodePathSolution(graph.getFitness(path, ""), path));
+        timeEnd = System.currentTimeMillis();
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Dijkstra", 1);
+
+        timeInit = System.currentTimeMillis();
+        dj = new DijkstraWeighted(0L, 1L, 0.5f);
+        dj.setGraph(graph);
+        timeStart = System.currentTimeMillis();
+        path = dj.getPath(randomPoints[0], randomPoints[1]);
+        timeEnd = System.currentTimeMillis();
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Dijkstra", 2);
+    }
+
+    private static void rAstar(GraphTable graph, Long[] randomPoints) {
+        long timeInit = System.currentTimeMillis();
+        Astar astar = new Astar();
+        astar.setGraph(graph);
+        astar.setTarget(1F);
+        long timeStart = System.currentTimeMillis();
+        List<Node> path = astar.getPath(randomPoints[0], randomPoints[1]);
+        long timeEnd = System.currentTimeMillis();
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "A*", 0);
+
+        timeInit = System.currentTimeMillis();
+        astar = new Astar();
+        astar.setGraph(graph);
+        astar.setTarget(0F);
+        timeStart = System.currentTimeMillis();
+        path = astar.getPath(randomPoints[0], randomPoints[1]);
+        timeEnd = System.currentTimeMillis();
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "A*", 1);
+
+        timeInit = System.currentTimeMillis();
+        astar = new Astar();
+        astar.setGraph(graph);
+        astar.setTarget(0.5F);
+        timeStart = System.currentTimeMillis();
+        path = astar.getPath(randomPoints[0], randomPoints[1]);
+        timeEnd = System.currentTimeMillis();
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "A*", 2);
+    }
+
+    private static Long[] selectRandomPoints(GraphTable graph, Random random) {
+        List<Long> vertex = new ArrayList<>(graph.getIntersections().keySet());
+        System.out.println("----- SIZE " + graph.getAdjacencyMatrix().rowKeySet().size() + " " + vertex.size());
+        Long[] index = new Long[2];
+        do {
+            index[0] = vertex.get(random.nextInt(vertex.size()));
+            index[1] = vertex.get(random.nextInt(vertex.size()));
+        } while (index[0].equals(index[1]));
+        return index;
+    }
+
+    private static void rPulse(GraphTable graph, Long[] randomPoints) {
+        long timeInit = System.currentTimeMillis();
+        PulseMO pulse = new PulseMO(4);
+        pulse.setGraph(graph);
+
+        long timeStart = System.currentTimeMillis();
+        Set<NodePathSolution> solutions = pulse.pulseAlgorithm(randomPoints[0], randomPoints[1]);
+        long timeEnd = System.currentTimeMillis();
+
+        System.out.println("NUMBER OF SOLUTIONS: " + solutions.size());
+        System.out.println("... method end");
+
+        System.out.println("Initialization time: \t" + (timeStart - timeInit));
+        System.out.println("Execution time: \t" + (timeEnd - timeStart));
+        System.out.println("... method end");
+
+        System.out.println("................");
+        System.out.println("\nPrint solutions FUN:");
+
+        printSolutions(solutions, (timeStart - timeInit), (timeEnd - timeStart), "PULSE");
+        /*for (NodePathSolution s : solutions) {
+            for (float l : s.getObjectives()) {
+                System.out.print(l + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("\nPrint solutions VAR:");
+        for (NodePathSolution s : solutions) {
+            for (Long l : s.getVariables()) {
+                System.out.print(l + " ");
+            }
+            System.out.println();
+        }
+        */
+    }
+
+    private static void printSolutions(GraphTable graph, NodePathSolution s, long t1, long t2, String algorithm, int i) {
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter("resultsFUN.ssv", true));
+                String line = graph.getMapping().get(s.getVariables()[0]) + " ";
+                line += graph.getMapping().get(s.getVariables()[s.getVariables().length-1]) + " ";
+                line += t1 + " ";
+                line += t2 + " ";
+                line += algorithm + " ";
+                line += i + " ";
+                line += s.getObjectives()[0] + " ";
+                line += s.getObjectives()[1] + " ";
+                line += s.getObjectives()[2] + " ";
+                line += s.getObjectives()[3] + " ";
+                line += "\n";
+                out.write(line);
+
+        } catch (IOException e) {
+            // error processing code
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static void printSolutions(Set<NodePathSolution> solutions, long t1, long t2, String algorithm) {
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter("resultsFUN.ssv", true));
+            int i = 0;
+            String line;
+            for (NodePathSolution s : solutions) {
+                line = s.getVariables()[0] + " ";
+                line += s.getVariables()[s.getVariables().length-1] + " ";
+                line += t1 + " ";
+                line += t2 + " ";
+                line += algorithm + " ";
+                line += i + " ";
+                line += s.getObjectives()[0] + " ";
+                line += s.getObjectives()[1] + " ";
+                line += s.getObjectives()[2] + " ";
+                line += s.getObjectives()[3] + " ";
+                line += "\n";
+                out.write(line);
+                i++;
+            }
+        } catch (IOException e) {
+            // error processing code
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     private static GraphTable prepareColoradoGraph() {
         GraphTable graph = ProcessGraph.parserFile("USA-road-d.COL.co");
         //System.out.println("Adding weight to the graph...");
@@ -332,7 +546,7 @@ public class RunMain {
         //ProcessGraph.printSCCs(graph);
 
         System.out.println("Normalizing...");
-        graph = ProcessGraph.normalizate(graph);
+        graph = ProcessGraph.normalize(graph);
         //ProcessGraph.printGraph(graph, "gCOL.xml");
         //ProcessGraph.printWeights(graph, "wCOL.xml");
 
@@ -353,7 +567,7 @@ public class RunMain {
         graph = ProcessGraph.applyArcs(graph, 0L, "USA-road-t.COL.gr");
         graph = ProcessGraph.computeNewWeight(graph, 1L, 5L, 4L, 0L);
 
-        graph = ProcessGraph.normalizate(graph);
+    //    graph = ProcessGraph.normalizate(graph);
 
         graph = ProcessGraph.applyWeights(graph, "wCOL2.xml");
         graph = ProcessGraph.applyWeights(graph, "wCOL4.xml");
@@ -368,10 +582,12 @@ public class RunMain {
         // Graph
         String graphFilePath = "graph_connected.xml";
         String weightFilePath0 = "wNew.xml";
-        System.out.println("Loading graph...");
         GraphTable graph = ProcessGraph.parserFile(graphFilePath);
         System.out.println("Adding weight to the graph...");
         graph = ProcessGraph.applyWeights(graph, weightFilePath0);
+        graph = ProcessGraph.applyWeights(graph, "wVar0.xml");
+        graph = ProcessGraph.applyWeights(graph, "wVar1.xml");
+        graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
         return graph;
     }
 
@@ -443,9 +659,7 @@ public class RunMain {
             }).start();
 
             p.waitFor();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }

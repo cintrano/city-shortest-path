@@ -1,4 +1,4 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra;
 
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
@@ -9,17 +9,17 @@ import java.util.Map.Entry;
 /**
  * Dijkstra algorithm
  */
-public class DijkstraOPT implements RoutingAlgorithm {
+public class Dijkstra {
 
     private GraphTable graph;
-    // Suponemos que los arcos van numerados desde 1...N
-    private float[] distances;
-    //private Map<Long, Float> distances;
+    private Map<Long, Float> distances;
     private Map<Long, Long> predecessors;
     private HashSet<Long> unvisited;
+    private Node from;
+    private Node to;
 
-    DijkstraOPT() {
-        //distances = new HashMap<Long, Float>();
+    Dijkstra() {
+        distances = new HashMap<Long, Float>();
         predecessors = new HashMap<Long, Long>();
         unvisited = new HashSet<Long>();
     }
@@ -30,37 +30,31 @@ public class DijkstraOPT implements RoutingAlgorithm {
 
     public void setGraph(GraphTable graph) {
         this.graph = graph;
-        distances = new float[graph.getIntersections().keySet().size() + 1]; // el 0 nunca se usa
-        //for (Long node : graph.getIntersections().keySet()) {
-        //    distances.put(node, Float.MAX_VALUE);
-        //}
-        for (int i = 0; i < distances.length; i++) {
-            distances[i] = Float.MAX_VALUE;
-        }
     }
 
-    public List<Node> getPath(Node from, Node to) {
-        //distances.put(from.getId(), 0f);
-        distances[(int) from.getId()] = 0f;
-        unvisited.add(from.getId());
+    public List<Node> getPath(Long from, Long to) {
+        //System.out.println("From:" + from.getId() + " To:" + to.getId());
+
+        setShortestDistance(from, 0f);
+        unvisited.add(from);
 
         while (!unvisited.isEmpty()) {
             Long node = minDistance(unvisited);
+            if (node == to) return computePath(to);
             unvisited.remove(node);
             visitNeighbors(node);
         }
 
-        return computePath(to.getId());
+        return computePath(to);
     }
 
     private void visitNeighbors(Long source) {
+        // System.out.println("Visiting source " + source);
         Map<Long, Long> neighbors = getNeighbors(source);
-        float value;
         for (Entry<Long, Long> neighbor : neighbors.entrySet()) {
-            value = distances[source.intValue()] + getEdgeDistance(source, neighbor);
-            if (distances[neighbor.getKey().intValue()] > value) {
-                distances[neighbor.getKey().intValue()] = 0f;
-                //distances.put(neighbor.getKey(), value);
+            // System.out.println("Neighbor: " + neighbor.getKey());
+            if (getShortestDistance(neighbor.getKey()) > getShortestDistance(source) + getEdgeDistance(source, neighbor)) {
+                setShortestDistance(neighbor.getKey(), getShortestDistance(source) + getEdgeDistance(source, neighbor));
                 predecessors.put(neighbor.getKey(), source);
                 unvisited.add(neighbor.getKey());
             }
@@ -71,14 +65,30 @@ public class DijkstraOPT implements RoutingAlgorithm {
         return graph.getWeightsMatrix().get(target.getValue(), 0L);
     }
 
-    private Map<Long, Long> getNeighbors(Long sourceId) {
+    private float getShortestDistance(long destId) {
+        if (!distances.containsKey(destId)) {
+            distances.put(destId, Float.MAX_VALUE);
+        }
+        return distances.get(destId);
+    }
+
+    private void setShortestDistance(long destId, float distance) {
+        distances.put(destId, distance);
+    }
+
+    protected Map<Long, Long> getNeighbors(Long sourceId) {
+        // System.out.println("Id" + sourceId + " cols:" +
+        // graph.getAdjacencyMatrix().containsColumn(sourceId) + " rows:"
+        // + graph.getAdjacencyMatrix().containsColumn(sourceId));
         return graph.getAdjacencyMatrix().row(sourceId);
     }
 
     private Long minDistance(HashSet<Long> nodes) {
         Long minimum = null;
         for (Long vertex : nodes) {
-            if (minimum == null || distances[vertex.intValue()] < distances[minimum.intValue()]) {
+            if (minimum == null) {
+                minimum = vertex;
+            } else if (getShortestDistance(vertex) < getShortestDistance(minimum)) {
                 minimum = vertex;
             }
         }
@@ -90,6 +100,11 @@ public class DijkstraOPT implements RoutingAlgorithm {
         Long step = target;
         // check if a path exists
         if (predecessors.get(step) == null) {
+            if (getGraph().getAdjacencyMatrix().get(from.getId(), to.getId()) != null) {
+                path.add(from);
+                path.add(to);
+                return path;
+            }
             System.out.println("No path found");
             return path;
         }

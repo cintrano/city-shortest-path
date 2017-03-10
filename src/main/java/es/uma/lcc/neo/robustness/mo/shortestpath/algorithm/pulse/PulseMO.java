@@ -1,7 +1,8 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.pulse;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraSimpleWNDim;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 
@@ -59,7 +60,6 @@ public class PulseMO {
     private void initialization(GraphTable graph) {
         // fill c_, t_
         GraphTable graphInv = inverseGraph(graph);
-        System.out.println("___i0___");
         for (Long lab : LABS) {
             System.out.println("LAB " + lab);
             initialization(graphInv, lab);
@@ -88,7 +88,7 @@ public class PulseMO {
         visited[(int) (end - 1)] = true;
         int i = visited[0] ? 1 : 0;
 
-        DijkstraWNDim algorithm = new DijkstraWNDim(LABS);
+        DijkstraSimpleWNDim algorithm = new DijkstraSimpleWNDim(LABS);
         float[] weight = new float[objectivesNumber];
         weight[type.intValue()] = 1;
         algorithm.setWeights(weight);
@@ -101,11 +101,12 @@ public class PulseMO {
 
             i = move(i, visited);
         }
+        cInf.put(end, new Float[]{0F, 0F, 0F, 0F});
     }
 
     private void pseudoNadirPoint(GraphTable graph) {
         for (Long lab : LABS) {
-            DijkstraWNDim algorithm = new DijkstraWNDim(LABS);
+            DijkstraSimpleWNDim algorithm = new DijkstraSimpleWNDim(LABS);
             float[] weight = new float[objectivesNumber];
             weight[lab.intValue()] = 1;
             algorithm.setGraph(graph);
@@ -136,7 +137,7 @@ public class PulseMO {
             } else {
                 fitness = new Float[objectivesNumber];
                 for (int j = 0; j < fitness.length; j++) {
-                    fitness[i] = 0F;
+                    fitness[j] = 0F;
                 }
             }
             Long arc = graph.getAdjacencyMatrix().get(path.get(i-1), path.get(i));

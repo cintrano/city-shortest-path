@@ -37,6 +37,10 @@ public class NodePathSolution {
         return objectives;
     }
 
+    public Long[] getVariables() {
+        return variables;
+    }
+
     @Override
     public String toString() {
         String s = "[";

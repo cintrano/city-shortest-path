@@ -1,7 +1,8 @@
-package es.uma.lcc.neo.robustness.mo.shortestpath.algorithm;
+package es.uma.lcc.neo.robustness.mo.shortestpath.utilities;
 
 /**
- * Created by cintrano on 7/02/17.
+ * Created by Christian Cintrano on 7/02/17.
+ *
  */
 public class MyPair implements Comparable{
     private Float k;
@@ -14,20 +15,12 @@ public class MyPair implements Comparable{
         this.v = v;
     }
 
-    public Float getK() {
+    private Float getK() {
         return k;
-    }
-
-    public void setK(Float k) {
-        this.k = k;
     }
 
     public Long getV() {
         return v;
-    }
-
-    public void setV(Long v) {
-        this.v = v;
     }
 
     @Override
@@ -37,8 +30,7 @@ public class MyPair implements Comparable{
 
         MyPair myPair = (MyPair) o;
 
-        if (Float.compare(myPair.k, k) != 0) return false;
-        return Float.compare(myPair.v, v) == 0;
+        return Float.compare(myPair.k, k) == 0 && Float.compare(myPair.v, v) == 0;
     }
 
     @Override
