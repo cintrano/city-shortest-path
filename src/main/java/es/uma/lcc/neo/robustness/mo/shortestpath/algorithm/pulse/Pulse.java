@@ -27,10 +27,14 @@ public class Pulse {
     private Map<Long, List<Float[]>> L;
     private Long start;
 
-    public Pulse() {
+    private Long obj1, obj2;
+
+    public Pulse(Long obj1, Long obj2) {
         extremesPaths = new HashMap<Long, Float[]>();
         L = new HashMap<Long, List<Float[]>>();
         Xe = new HashSet<NodePathSolution>();
+        this.obj1 = obj1;
+        this.obj2 = obj2;
     }
 
     public void setGraph(GraphTable graph) {
@@ -61,9 +65,9 @@ public class Pulse {
         // fill c_, t_
         GraphTable graphInv = inverseGraph(graph);
         System.out.println("___i0___");
-        initialization(graphInv, 0L);
+        initialization(graphInv, obj1);
         System.out.println("___i1___");
-        initialization(graphInv, 1L);
+        initialization(graphInv, obj2);
         System.out.println("___i2___");
         // Vstart -> Vend
         float C = getCLimit(graph);
@@ -103,11 +107,11 @@ public class Pulse {
         int i = visited[0] ? 1 : 0;
 
         DijkstraWeighted algorithm = null;
-        if (type == 0L) {
-            algorithm = new DijkstraWeighted(0L, 1L, 1f);
+        if (type == obj1) {
+            algorithm = new DijkstraWeighted(obj1, obj2, 1f);
         }
-        if (type == 1L) {
-            algorithm = new DijkstraWeighted(0L, 1L, 0f);
+        if (type == obj2) {
+            algorithm = new DijkstraWeighted(obj1, obj2, 0f);
         }
         if (algorithm != null) {
             algorithm.setGraph(graph);
@@ -115,7 +119,7 @@ public class Pulse {
 //            System.out.print(i + " ");
             while (i < visited.length) {
 //                System.out.print("_");
-                List<Node> path = algorithm.getPath(end, i + 1L);
+                List<Node> path = algorithm.getPath(end, i + obj2);
 //                System.out.print("_");
                 markSubPaths(path, visited);
 //                System.out.print("-");
@@ -130,21 +134,21 @@ public class Pulse {
 
 
     private float getCLimit(GraphTable graph) {
-        DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, (float) 0);
+        DijkstraWeighted algorithm = new DijkstraWeighted(obj1, obj2, (float) 0);
         algorithm.setGraph(graph);
         List<Node> path = algorithm.getPath(start, end);
         float[] fitness = graph.getFitness(path, "fool");
         return fitness[0];
     }
     private float getTLimit(GraphTable graph) {
-        DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, (float) 1);
+        DijkstraWeighted algorithm = new DijkstraWeighted(obj1, obj2, (float) 1);
         algorithm.setGraph(graph);
         List<Node> path = algorithm.getPath(start, end);
         float[] fitness = graph.getFitness(path, "fool");
         return fitness[1];
     }
     private float getLimit(GraphTable graph, int i) {
-        DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, (float) i);
+        DijkstraWeighted algorithm = new DijkstraWeighted(obj1, obj2, (float) i);
         algorithm.setGraph(graph);
         List<Node> path = algorithm.getPath(start, end);
         float[] fitness = graph.getFitness(path, "fool");
@@ -153,12 +157,12 @@ public class Pulse {
     /*
     private void initialization(GraphTable graph) {
         System.out.println();
-        initialization(graph, 0L);
+        initialization(graph, obj1);
         System.out.println();
-        System.out.println("___0L___");
-        initialization(graph, 1L);
+        System.out.println("___obj1___");
+        initialization(graph, obj2);
         System.out.println();
-        System.out.println("___1L___");
+        System.out.println("___obj2___");
         extremesPaths.put(start, new Float[]{0F,0F,0F,0F});
     }
     private void initialization(GraphTable graph, Long type) {
@@ -167,17 +171,17 @@ public class Pulse {
         int i = visited[0] ? 1 : 0;
 
         DijkstraWeighted algorithm = null;
-        if (type == 0L) {
-            algorithm = new DijkstraWeighted(0L, 1L, 1f);
+        if (type == obj1) {
+            algorithm = new DijkstraWeighted(obj1, obj2, 1f);
         }
-        if (type == 1L) {
-            algorithm = new DijkstraWeighted(0L, 1L, 0f);
+        if (type == obj2) {
+            algorithm = new DijkstraWeighted(obj1, obj2, 0f);
         }
         if (algorithm != null) {
             algorithm.setGraph(graph);
 
             while (i < visited.length) {
-                List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(i + 1L));
+                List<Node> path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(i + obj2));
                 markSubPaths(path, visited);
                 addFitness(path, type);
 
@@ -205,15 +209,15 @@ public class Pulse {
             }
             Long arc = graph.getAdjacencyMatrix().get(path.get(i-1).getId(), path.get(i).getId());
             //Long arcInv = graph.getAdjacencyMatrix().get(path.get(path.size() - i - 1).getId(), path.get(path.size() - i).getId());
-            sum[0] += graph.getWeightsMatrix().get(arc, 0L);
-            sum[1] += graph.getWeightsMatrix().get(arc, 1L);
-            //sumInv[0] += graph.getWeightsMatrix().get(arcInv, 0L);
-            //sumInv[1] += graph.getWeightsMatrix().get(arcInv, 1L);
-            if (type == 0L) {
+            sum[0] += graph.getWeightsMatrix().get(arc, obj1);
+            sum[1] += graph.getWeightsMatrix().get(arc, obj2);
+            //sumInv[0] += graph.getWeightsMatrix().get(arcInv, obj1);
+            //sumInv[1] += graph.getWeightsMatrix().get(arcInv, obj2);
+            if (type == obj1) {
                 fitness[1] = sum[0];
                 //fitness[1] = sumInv[0];
             }
-            if (type == 1L) {
+            if (type == obj2) {
                 //fitness[2] = sum[1];
                 fitness[3] = sum[1];
             }
@@ -299,11 +303,11 @@ public class Pulse {
     }
 
     private float c(Long vi, Long vj) {
-        return graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(vi, vj), 0L);
+        return graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(vi, vj), obj1);
     }
 
     private float t(Long vi, Long vj) {
-        return graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(vi, vj), 1L);
+        return graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(vi, vj), obj2);
     }
 
     private Set<Long> outgoingNeighbors(Long v) {
@@ -347,11 +351,11 @@ public class Pulse {
     }
 
     private float c(List<Long> x) {
-        return graph.getFitness(x, 0L);
+        return graph.getFitness(x, obj1);
     }
 
     private float t(List<Long> x) {
-        return graph.getFitness(x, 1L);
+        return graph.getFitness(x, obj2);
     }
 
     private float c(NodePathSolution x) {

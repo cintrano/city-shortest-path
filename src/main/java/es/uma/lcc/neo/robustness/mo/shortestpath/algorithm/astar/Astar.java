@@ -140,7 +140,7 @@ public class Astar {
         */
     }
 
-    private Float distBetween(Long current, Long neighbor) {
+    protected Float distBetween(Long current, Long neighbor) {
         return (graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(current, neighbor), 0L) * target) +
                 (graph.getWeightsMatrix().get(graph.getAdjacencyMatrix().get(current, neighbor), 1L) * (1 - target));
     }
@@ -183,4 +183,7 @@ public class Astar {
     }
 
 
+    public GraphTable getGraph() {
+        return graph;
+    }
 }
