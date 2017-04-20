@@ -765,15 +765,21 @@ public class ProcessGraph {
         for (Long l : graph.getIntersections().keySet()) {
             newIntersections.put(graph.getMapping().get(l), graph.getIntersections().get(l));
         }
-        for (Long r :
-                graph.getAdjacencyMatrix().rowKeySet()) {
-            for (Long c :
-                    graph.getAdjacencyMatrix().row(r).keySet()) {
+        for (Long r : graph.getAdjacencyMatrix().rowKeySet()) {
+            for (Long c : graph.getAdjacencyMatrix().row(r).keySet()) {
                 newAdjacencyMatrix.put(graph.getMapping().get(r), graph.getMapping().get(c), graph.getAdjacencyMatrix().get(r, c));
             }
         }
         graph.setIntersections(newIntersections);
         graph.setAdjacencyMatrix(newAdjacencyMatrix);
         return graph;
+    }
+
+    public static List<Long> nodeToLong(GraphTable graph, List<Node> pathN) {
+        List<Long> path = new ArrayList<>();
+        for (Node n : pathN) {
+            path.add(graph.getMapping().get(n.getId()));
+        }
+        return path;
     }
 }

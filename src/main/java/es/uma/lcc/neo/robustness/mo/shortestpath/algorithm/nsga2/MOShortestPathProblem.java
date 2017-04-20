@@ -4,6 +4,7 @@ import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.astar.Astar;
 import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.robustness.mo.shortestpath.utilities.ProcessGraph;
 import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.algorithm.singleobjective.geneticalgorithm.SteadyStateGeneticAlgorithm;
 import org.uma.jmetal.problem.Problem;
@@ -88,7 +89,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
             Long arco = graph.getAdjacencyMatrix().get(pathSolution.getVariableValue(i), pathSolution.getVariableValue(i+1));
             //System.out.println(arco);
             for (int j = 0; j < fitness.length; j++) {
-                fitness[j] += graph.getWeightsMatrix().row(arco).get(new Long(j));
+                fitness[j] += graph.getWeightsMatrix().get(arco, (long) j);
             }
             /*
             fitness[1] = 0f;
@@ -197,7 +198,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
     }
 
     private static Long[] getRandomDijkstraSearchPath(GraphTable graph, Long start, Long end, float peso) {
-        List<Node> path;
+        List<Long> path;
         DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, peso);
         algorithm.setGraph(graph);
 
@@ -207,12 +208,13 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
         path.remove(path.size()-1);
         path.addAll(algorithm.getPath(graph.getIntersections().get(middleNode), graph.getIntersections().get(end)));
         */
-        path = algorithm.getPath(start, end);
+        List<Node> pathN = algorithm.getPath(start, end);
+        path = ProcessGraph.nodeToLong(graph, pathN);
 
         Long[] pathArray = new Long[path.size()];
         //System.out.println("=== NEW INDIVIDUAL ===");
         for (int i = 0; i < path.size(); i++) {
-            pathArray[i] = path.get(i).getId();
+            pathArray[i] = path.get(i);
             System.out.print(pathArray[i] + " ");
         //    System.out.println(pathArray[i]);
         }
@@ -231,6 +233,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
         List<Node> path;
         Astar algorithm = new Astar();
         algorithm.setGraph(graph);
+        algorithm.setTarget(0.5f);
 
         /*
         Long middleNode = new ArrayList<Long>(graph.getIntersections().keySet()).get(randomGenerator.nextInt(0, graph.getIntersections().keySet().size() -1));
@@ -250,7 +253,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
         Long[] pathArray = new Long[path.size()];
         //System.out.println("=== NEW INDIVIDUAL ===");
         for (int i = 0; i < path.size(); i++) {
-            pathArray[i] = path.get(i).getId();
+            pathArray[i] = graph.getMapping().get(path.get(i).getId());
             //    System.out.println(pathArray[i]);
         }
         //System.out.println("======");

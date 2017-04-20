@@ -24,6 +24,7 @@ import org.uma.jmetal.operator.CrossoverOperator;
 import org.uma.jmetal.operator.MutationOperator;
 import org.uma.jmetal.operator.impl.selection.BinaryTournamentSelection;
 import org.uma.jmetal.problem.Problem;
+import org.uma.jmetal.runner.multiobjective.NSGAIIIntegerRunner;
 import org.uma.jmetal.util.AlgorithmRunner;
 import org.uma.jmetal.util.JMetalLogger;
 import org.uma.jmetal.util.comparator.RankingAndCrowdingDistanceComparator;
@@ -122,6 +123,10 @@ public class RunMain {
                 if (Objects.equals(args[1], "NSGAII")) {
                     System.out.println("Run NSGA-II...");
                     rNSGAII(graph, points, seed[Integer.parseInt(args[3])]);
+                }
+                if (Objects.equals(args[1], "NSGAIII")) {
+                    System.out.println("Run NSGA-III...");
+                    rNSGAIII(graph, points, seed[Integer.parseInt(args[3])]);
                 }
             }
         }
@@ -296,7 +301,7 @@ public class RunMain {
 
     private static void rDijkstraExperiments(GraphTable graph, Long[] randomPoints) {
         Long[] objectives = new Long[]{0L, 1L, 2L, 3L};
-        float[] weights = new float[]{0.0f, 0.25f, 0.75f, 1.0f};
+        float[] weights = new float[]{0.001f, 0.25f, 0.75f, 1.0f};
 
         for (int w0 = 0; w0 < weights.length; w0++) {
             for (int w1 = 0; w1 < weights.length; w1++) {
@@ -325,37 +330,10 @@ public class RunMain {
     }
 
 
-    private static void rDijkstra(GraphTable graph, Long[] randomPoints) {
-        long timeInit = System.currentTimeMillis();
-        DijkstraWeighted dj = new DijkstraWeighted(0L, 1L, 1f);
-        dj.setGraph(graph);
-        long timeStart = System.currentTimeMillis();
-        List<Node> path = dj.getPath(randomPoints[0], randomPoints[1]);
-        long timeEnd = System.currentTimeMillis();
-        //sol.add(new NodePathSolution(graph.getFitness(path, ""), path));
-        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Dijkstra", "0");
-
-        timeInit = System.currentTimeMillis();
-        dj = new DijkstraWeighted(0L, 1L, 0f);
-        dj.setGraph(graph);
-        timeStart = System.currentTimeMillis();
-        path = dj.getPath(randomPoints[0], randomPoints[1]);
-        //sol.add(new NodePathSolution(graph.getFitness(path, ""), path));
-        timeEnd = System.currentTimeMillis();
-        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Dijkstra", "1");
-
-        timeInit = System.currentTimeMillis();
-        dj = new DijkstraWeighted(0L, 1L, 0.5f);
-        dj.setGraph(graph);
-        timeStart = System.currentTimeMillis();
-        path = dj.getPath(randomPoints[0], randomPoints[1]);
-        timeEnd = System.currentTimeMillis();
-        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Dijkstra", "2");
-    }
 
 
     private static void rAstarExperiments(GraphTable graph, Long[] randomPoints) {
-        float[] weights = new float[]{0.0f, 0.25f, 0.75f, 1.0f};
+        float[] weights = new float[]{0.001f, 0.25f, 0.75f, 1.0f};
 
         for (int w0 = 0; w0 < weights.length; w0++) {
             for (int w1 = 0; w1 < weights.length; w1++) {
@@ -464,6 +442,7 @@ public class RunMain {
         Long[] objectives = new Long[]{0L, 1L, 2L, 3L};
         for (int i = 0; i < objectives.length - 1; i++) {
             for (int j = i + 1; j < objectives.length; j++) {
+                System.out.println(objectives[i] + " " + objectives[j]);
                 rPulse2(graph, randomPoints, objectives[i], objectives[j]);
             }
         }
@@ -549,6 +528,19 @@ public class RunMain {
                 "NSGAII"
         );
     }
+
+    private static void rNSGAIII(GraphTable graph, Long[] points, long seed) {
+        executeAlgorithm(
+                new MOShortestPathProblem(graph, points[0], points[1], 10),
+                seed,
+                0.9, //crossoverProbability,
+                0.1, //mutationProbability,
+                1000,//numIterations,
+                10,//populationSize,
+                "NSGAIII"
+        );
+    }
+
     private static void executeAlgorithm(Problem problem, long seed, double crossoverProbability,
                                          double mutationProbability, int numIterations, int populationSize,
                                          String metaheuristic) {
@@ -749,7 +741,7 @@ public class RunMain {
                 line += t1 + " ";
                 line += t2 + " ";
                 line += algorithm + " ";
-                line += i + tag + " ";
+                line += i + "-" + tag + " ";
                 line += s.getObjectives()[0] + " ";
                 line += s.getObjectives()[1] + " ";
                 line += s.getObjectives()[2] + " ";

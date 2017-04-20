@@ -6,6 +6,7 @@ import es.uma.lcc.neo.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeig
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
+import es.uma.lcc.neo.robustness.mo.shortestpath.utilities.ProcessGraph;
 
 import java.util.*;
 
@@ -21,17 +22,17 @@ public class Pulse {
     private Set<NodePathSolution> Xe;
 
     // Vstart -> V; Map<V, Float[cSup, cInf, tSup, tInf]>
-    private Map<Long, Float[]> extremesPaths;
+    private Map<Long, float[]> extremesPaths;
 
     // TODO No se si es correcto o no
-    private Map<Long, List<Float[]>> L;
+    private Map<Long, List<float[]>> L;
     private Long start;
 
     private Long obj1, obj2;
 
     public Pulse(Long obj1, Long obj2) {
-        extremesPaths = new HashMap<Long, Float[]>();
-        L = new HashMap<Long, List<Float[]>>();
+        extremesPaths = new HashMap<Long, float[]>();
+        L = new HashMap<Long, List<float[]>>();
         Xe = new HashSet<NodePathSolution>();
         this.obj1 = obj1;
         this.obj2 = obj2;
@@ -51,13 +52,13 @@ public class Pulse {
         this.start = start;
         this.end = end;
         List<Long> P = new ArrayList<Long>();
-        float c = 0f;
-        float t = 0f;
+        float c = 0.0f;
+        float t = 0.0f;
         System.out.println("___s0___");
         initialization(graph);
         System.out.println("___s1___");
         pulse(start, c, t, P);
-        System.out.println("___s2___");
+        System.out.println("___s2___" + Xe.size());
         return Xe;
     }
 
@@ -71,16 +72,16 @@ public class Pulse {
         System.out.println("___i2___");
         // Vstart -> Vend
         float C = getCLimit(graph);
-        System.out.println("___i3___");
+        System.out.println("___i3___" + C);
         float T = getTLimit(graph);
-        System.out.println("___i4___");
+        System.out.println("___i4___" + T);
         // fill c~, t~
-        extremesPaths.put(end, new Float[]{C,0.0F,T,0.0F});
-        Map<Long, Float[]> newExtremesPaths = new HashMap<Long, Float[]>();
+        extremesPaths.put(end, new float[]{C, 0.0f, T, 0.0f});
+        Map<Long, float[]> newExtremesPaths = new HashMap<Long, float[]>();
         for (Long v : extremesPaths.keySet()) {
-            Float[] value = extremesPaths.get(v);
-            value[0] = C - value[1].floatValue();
-            value[2] = T - value[3].floatValue();
+            float[] value = extremesPaths.get(v);
+            value[0] = C - value[1];
+            value[2] = T - value[3];
             newExtremesPaths.put(v, value);
         }
         System.out.println("___i5___");
@@ -98,6 +99,7 @@ public class Pulse {
             }
         }
         graphInv.setAdjacencyMatrix(adjacencyMatrix);
+        graphInv.setMapping(graph.getMapping());
         return graphInv;
     }
 
@@ -107,10 +109,10 @@ public class Pulse {
         int i = visited[0] ? 1 : 0;
 
         DijkstraWeighted algorithm = null;
-        if (type == obj1) {
+        if (Objects.equals(type, obj1)) {
             algorithm = new DijkstraWeighted(obj1, obj2, 1f);
         }
-        if (type == obj2) {
+        if (Objects.equals(type, obj2)) {
             algorithm = new DijkstraWeighted(obj1, obj2, 0f);
         }
         if (algorithm != null) {
@@ -118,16 +120,12 @@ public class Pulse {
 
 //            System.out.print(i + " ");
             while (i < visited.length) {
-//                System.out.print("_");
-                List<Node> path = algorithm.getPath(end, i + obj2);
-//                System.out.print("_");
+                List<Node> pathN = algorithm.getPath(end, i + 1L);
+                List<Long> path = ProcessGraph.nodeToLong(graph, pathN);
                 markSubPaths(path, visited);
-//                System.out.print("-");
                 addFitness(graph, path, type);
-//                System.out.print("_");
 
                 i = move(i, visited);
-//                System.out.print(i + " ");
             }
         }
     }
@@ -136,22 +134,25 @@ public class Pulse {
     private float getCLimit(GraphTable graph) {
         DijkstraWeighted algorithm = new DijkstraWeighted(obj1, obj2, (float) 0);
         algorithm.setGraph(graph);
-        List<Node> path = algorithm.getPath(start, end);
-        float[] fitness = graph.getFitness(path, "fool");
-        return fitness[0];
+        List<Node> pathN = algorithm.getPath(start, end);
+        List<Long> path = ProcessGraph.nodeToLong(graph, pathN);
+        float[] fitness = graph.getFitness(path);
+        return fitness[obj1.intValue()];
     }
     private float getTLimit(GraphTable graph) {
         DijkstraWeighted algorithm = new DijkstraWeighted(obj1, obj2, (float) 1);
         algorithm.setGraph(graph);
-        List<Node> path = algorithm.getPath(start, end);
-        float[] fitness = graph.getFitness(path, "fool");
-        return fitness[1];
+        List<Node> pathN = algorithm.getPath(start, end);
+        List<Long> path = ProcessGraph.nodeToLong(graph, pathN);
+        float[] fitness = graph.getFitness(path);
+        return fitness[obj2.intValue()];
     }
     private float getLimit(GraphTable graph, int i) {
         DijkstraWeighted algorithm = new DijkstraWeighted(obj1, obj2, (float) i);
         algorithm.setGraph(graph);
-        List<Node> path = algorithm.getPath(start, end);
-        float[] fitness = graph.getFitness(path, "fool");
+        List<Node> pathN = algorithm.getPath(start, end);
+        List<Long> path = ProcessGraph.nodeToLong(graph, pathN);
+        float[] fitness = graph.getFitness(path);
         return fitness[i];
     }
     /*
@@ -191,23 +192,23 @@ public class Pulse {
     }
     */
 
-    private void markSubPaths(List<Node> path, boolean[] visited) {
-        for (Node v : path) {
-            visited[(int) (v.getId() - 1)] = true;
+    private void markSubPaths(List<Long> path, boolean[] visited) {
+        for (Long v : path) {
+            visited[(int) (v - 1)] = true;
         }
     }
 
-    private void addFitness(GraphTable graph, List<Node> path, long type) {
-        Float[] fitness;
-        float[] sum = new float[2];
+    private void addFitness(GraphTable graph, List<Long> path, long type) {
+        float[] fitness;
+        float[] sum = new float[]{0.0f, 0.0f};
         //float[] sumInv = new float[2];
         for (int i = 1; i < path.size(); i++) {
-            if (extremesPaths.containsKey(path.get(i).getId())) {
-                fitness = extremesPaths.get(path.get(i).getId());
+            if (extremesPaths.containsKey(path.get(i))) {
+                fitness = extremesPaths.get(path.get(i));
             } else {
-                fitness = new Float[]{0F,0F,0F,0F};
+                fitness = new float[]{0.0f,0.0f,0.0f,0.0f};
             }
-            Long arc = graph.getAdjacencyMatrix().get(path.get(i-1).getId(), path.get(i).getId());
+            Long arc = graph.getAdjacencyMatrix().get(path.get(i-1), path.get(i));
             //Long arcInv = graph.getAdjacencyMatrix().get(path.get(path.size() - i - 1).getId(), path.get(path.size() - i).getId());
             sum[0] += graph.getWeightsMatrix().get(arc, obj1);
             sum[1] += graph.getWeightsMatrix().get(arc, obj2);
@@ -221,7 +222,7 @@ public class Pulse {
                 //fitness[2] = sum[1];
                 fitness[3] = sum[1];
             }
-            extremesPaths.put(path.get(i).getId(), fitness);
+            extremesPaths.put(path.get(i), fitness);
         }
     }
 
@@ -258,20 +259,17 @@ public class Pulse {
                             }
                         }
                     }
-                    else {
-//                        System.out.println("\t\t\tNOOOO " + v);
-                    }
                 }
             }
         }
     }
 
     private void store(Long v, float c, float t) {
-        List<Float[]> value = L.get(v);
+        List<float[]> value = L.get(v);
         if (value == null) {
-            value = new ArrayList<Float[]>();
+            value = new ArrayList<float[]>();
         }
-        value.add(new Float[]{c, t});
+        value.add(new float[]{c, t});
         L.put(v, value);
     }
 
@@ -295,11 +293,12 @@ public class Pulse {
         Iterator<NodePathSolution> i = Xe.iterator();
         while (i.hasNext()) {
             NodePathSolution xP = i.next();
-            if (c(x) <= c(xP) && t(x) <= t(xP)) {
+            if ((c(x) <= c(xP)) && (t(x) <= t(xP))) {
                 i.remove();
             }
         }
         Xe.add(new NodePathSolution(graph, x));
+        System.out.println("Update efficient set. " + Xe.size());
     }
 
     private float c(Long vi, Long vj) {
@@ -324,7 +323,7 @@ public class Pulse {
     }
 
     private boolean checkNadirPoint(Long v, float c, float t) {
-        return (c > cSup(v) || t > tSup(v));
+        return (c > (cSup(v)+0.01) || t > (tSup(v)+0.01));
     }
 
     private float cSup(Long v) {
@@ -343,7 +342,7 @@ public class Pulse {
 
     private boolean checkEfficientSet(Long v, float c, float t) {
         for (NodePathSolution x : Xe) {
-            if (c(x) <= c + cInf(v) && t(x) <= t + tInf(v)) {
+            if ((c(x) <= c + cInf(v)) && (t(x) <= t + tInf(v))) {
                 return true;
             }
         }
@@ -359,20 +358,20 @@ public class Pulse {
     }
 
     private float c(NodePathSolution x) {
-        return x.getObjectives()[0];
-    }
+        return x.getObjectives()[obj1.intValue()];
+    }// valor previo obj1.intValue() = 0
 
     private float t(NodePathSolution x) {
-        return x.getObjectives()[1];
-    }
+        return x.getObjectives()[obj2.intValue()];
+    }// valor previo obj2.intValue() = 1
 
     private boolean checkLabels(Long v, float c, float t) {
         /*
         TODO terminal este check
          */
         if (L.get(v) != null) {
-            for (Float[] costs : L.get(v)) {
-                if (costs[0] <= c && costs[1] <= t) {
+            for (float[] costs : L.get(v)) {
+                if ((costs[0] <= c) && (costs[1] <= t)) {
                     return true;
                 }
             }

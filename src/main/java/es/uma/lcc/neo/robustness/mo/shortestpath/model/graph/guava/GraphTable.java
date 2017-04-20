@@ -23,7 +23,7 @@ public class GraphTable {
     private Map<Long, Float> lowerBound;
     private Map<Long, Float> upperBound;
 
-    private Map<Long,Long> mapping;
+    private Map<Long,Long> mapping;// <Node, newId>
 
     public GraphTable() {
         //graph = new HashMap<Node, Map<Node,Long>>();
