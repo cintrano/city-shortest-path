@@ -12,6 +12,8 @@ public class Node{
     private BigDecimal latitude;
     private BigDecimal longitude;
     private long id;
+    private float noiseMean;
+    private float noiseSD;
 
     private Node(String name) {
         this.name = name;
@@ -47,5 +49,21 @@ public class Node{
 
     public long getId() {
         return id;
+    }
+
+    public void setNoiseMean(float noiseMean) {
+        this.noiseMean = noiseMean;
+    }
+
+    public void setNoiseSD(float noiseSD) {
+        this.noiseSD = noiseSD;
+    }
+
+    public float getNoiseMean() {
+        return noiseMean;
+    }
+
+    public float getNoiseSD() {
+        return noiseSD;
     }
 }

@@ -11,6 +11,7 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
+import java.math.BigDecimal;
 import java.util.*;
 
 
@@ -69,12 +70,36 @@ public class ProcessGraph {
                         Long.parseLong(eElement.getAttribute("to")),
                         Long.parseLong(eElement.getAttribute("arcid"))
                 );
+                if (eElement.getAttribute("type") != null) {
+                    graph.getWeightsMatrix().put(
+                            Long.parseLong(eElement.getAttribute("arcid")),
+                            10L,
+                            getSpeed(eElement.getAttribute("type"))
+                    );
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return graph;
+    }
+
+    // http://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Maxspeed
+    private static float getSpeed(String type) {
+        if (Objects.equals(type, "motorway")) {
+            return 120f;
+        }
+        if (Objects.equals(type, "motorway_link") || Objects.equals(type, "trunk")) {
+            return 100f;
+        }
+        if (Objects.equals(type, "trunk_link")) {
+            return 80f;
+        }
+        if (Objects.equals(type, "living_street") || Objects.equals(type, "residential")) {
+            return 20f;
+        }
+        return 50f;
     }
 
     private static GraphTable parserCOFile(String file) {
@@ -95,8 +120,6 @@ public class ProcessGraph {
                 }
                 line = br.readLine();
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -133,8 +156,6 @@ public class ProcessGraph {
                 }
                 line = br.readLine();
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -179,8 +200,6 @@ public class ProcessGraph {
                 org.w3c.dom.Node nNode = nList.item(temp);
                 if (nNode.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
                     Element eElement = (Element) nNode;
-                    //System.out.println("weight: " + Long.parseLong(eElement.getAttribute("arcid")) + " " +
-                    //         Long.parseLong(eElement.getAttribute("type")) + " " + Float.parseFloat(eElement.getAttribute("value")));
                     graph.getWeightsMatrix().put(
                             Long.parseLong(eElement.getAttribute("arcid")),
                             Long.parseLong(eElement.getAttribute("type")),
@@ -556,10 +575,11 @@ public class ProcessGraph {
             // arcs
             writer.write("<weights>\n");
             float value;
-            for (Long arcid : graph.getWeightsMatrix().rowKeySet()) {
-                value = ((( upperBound - lowerBound) * random.nextFloat()) + lowerBound) * graph.getWeightsMatrix().get(arcid, 4L);
+            for (Long arcId : graph.getWeightsMatrix().rowKeySet()) {
+                value = ((( upperBound - lowerBound) * random.nextFloat()) + lowerBound)
+                        * graph.getWeightsMatrix().get(arcId, 4L);
                 line = "<weight " +
-                        "arcid='" + arcid +
+                        "arcid='" + arcId +
                         "' value='" + value +
                         "' type='" + type +
                         "' />\n";
@@ -594,10 +614,11 @@ public class ProcessGraph {
             // arcs
             writer.write("<weights>\n");
             float value;
-            for (Long arcid : graph.getWeightsMatrix().rowKeySet()) {
-                value = ((( upperBound - lowerBound) * random.nextFloat()) + lowerBound) * graph.getWeightsMatrix().get(arcid, baseType);
+            for (Long arcId : graph.getWeightsMatrix().rowKeySet()) {
+                value = ((( upperBound - lowerBound) * random.nextFloat()) + lowerBound)
+                        * graph.getWeightsMatrix().get(arcId, baseType);
                 line = "<weight " +
-                        "arcid='" + arcid +
+                        "arcid='" + arcId +
                         "' value='" + value +
                         "' type='" + type +
                         "' />\n";
@@ -708,8 +729,6 @@ public class ProcessGraph {
                 line = br.readLine();
             }
             graph.setMapping(mapping);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -767,7 +786,11 @@ public class ProcessGraph {
         }
         for (Long r : graph.getAdjacencyMatrix().rowKeySet()) {
             for (Long c : graph.getAdjacencyMatrix().row(r).keySet()) {
-                newAdjacencyMatrix.put(graph.getMapping().get(r), graph.getMapping().get(c), graph.getAdjacencyMatrix().get(r, c));
+                newAdjacencyMatrix.put(
+                        graph.getMapping().get(r),
+                        graph.getMapping().get(c),
+                        graph.getAdjacencyMatrix().get(r, c)
+                );
             }
         }
         graph.setIntersections(newIntersections);
@@ -781,5 +804,120 @@ public class ProcessGraph {
             path.add(graph.getMapping().get(n.getId()));
         }
         return path;
+    }
+
+    public static GraphTable divideWeights(GraphTable graph, long w1, long w2, long res) {
+        for (Long arc : graph.getAdjacencyMatrix().rowKeySet()) {
+            graph.getWeightsMatrix().put(arc, res,
+                    graph.getWeightsMatrix().get(arc, w1) / graph.getWeightsMatrix().get(arc, w2));
+        }
+        return graph;
+    }
+
+    public static GraphTable addValuesGraph(GraphTable graph, String filename) {
+        // load data
+        BufferedReader br = null;
+        List<Float[]> input = new ArrayList<>();
+        try {
+            br = new BufferedReader(new FileReader(filename));
+            String line = br.readLine();
+            line = br.readLine();
+
+            while (line != null) {
+                String[] a = line.split(" ");
+                input.add(new Float[]{
+                        Float.parseFloat(a[0]),
+                        Float.parseFloat(a[1]),
+                        Float.parseFloat(a[2]),
+                        Float.parseFloat(a[3])});
+                line = br.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) try {
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // compute missing information
+        //asignateFixInformation(graph, input);
+
+        for (Long node : graph.getIntersections().keySet()) {
+            calculateInverseMeanNoise(graph.getIntersections().get(node), input);
+        }
+
+        // add to graph
+        for (Long r : graph.getAdjacencyMatrix().rowKeySet()) {
+            for (Long c : graph.getAdjacencyMatrix().row(r).keySet()) {
+                graph.getWeightsMatrix().put(graph.getAdjacencyMatrix().get(r, c), 1L,
+                        (graph.getIntersections().get(r).getNoiseMean() + graph.getIntersections().get(c).getNoiseMean())/2);
+                graph.getWeightsMatrix().put(graph.getAdjacencyMatrix().get(r, c), 3L,
+                        (graph.getIntersections().get(r).getNoiseSD() + graph.getIntersections().get(c).getNoiseSD())/2);
+            }
+        }
+
+        return graph;
+    }
+
+    private static void calculateInverseMeanNoise(Node node, List<Float[]> input) {
+        int dim = input.size();
+        float[] distances = new float[dim];
+        float sum = 0.0f;
+        for (int i = 0; i < dim; i++) {
+            distances[i] = invDistance(node.getLatitude(), node.getLongitude(), input.get(i)[0], input.get(i)[1]);
+            if (distances[i] == -1) {
+                node.setNoiseMean(input.get(i)[2]);
+                node.setNoiseSD(input.get(i)[3]);
+                return;
+            }
+            sum += distances[i];
+        }
+
+        float mean = 0.0f, sd = 0.0f;
+        for (int i = 0; i < dim; i++) {
+            mean += input.get(i)[3]*distances[i]/sum;
+            sd += input.get(i)[4]*distances[i]/sum;
+        }
+        node.setNoiseMean(mean/dim);
+        node.setNoiseSD(sd/dim);
+    }
+
+    private static float invDistance(BigDecimal latitude, BigDecimal longitude, Float lat, Float lon) {
+        double dist = distance(latitude.doubleValue(), longitude.doubleValue(), lat, lon, "K");
+        if (dist <= 0.001) { // 1 meter
+            return -1;
+        }
+        return (float) dist;// -1 if is the same point
+    }
+
+    private static double distance(double lat1, double lon1, double lat2, double lon2, String unit) {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        if (unit == "K") {
+            dist = dist * 1.609344;
+        } else if (unit == "N") {
+            dist = dist * 0.8684;
+        }
+
+        return (dist);
+    }
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+	/*::	This function converts decimal degrees to radians						 :*/
+	/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+	/*::	This function converts radians to decimal degrees						 :*/
+	/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double rad2deg(double rad) {
+        return (rad * 180 / Math.PI);
     }
 }
