@@ -22,19 +22,25 @@ public class GraphUtilitiesMain {
         // graph = prepareGraph();
         // graph = ProcessGraph.fixVertexIndex(graph);
 
-        GraphTable graph = ProcessGraph.parserFile("graph.ampliado.xml"); // Load Speed -> 10
-        graph = ProcessGraph.getMaxConnectedComponent(graph, "connected_components.txt");
-        graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
-        graph = ProcessGraph.fixVertexIndex(graph);
+        GraphTable graph = ProcessGraph.parserFile("graph.ampliado.xml"); // Load Speed (km/h) -> 10
+        graph = ProcessGraph.getMaxConnectedComponent(graph, "componentes_conexas_malaga.txt");
+        //graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
+        //graph = ProcessGraph.fixVertexIndex(graph);
 
-        graph = ProcessGraph.applyWeights(graph, "weight.ampliado.xml"); // Load Distance -> 11
-        graph = ProcessGraph.divideWeights(graph, 11L, 10L, 0L);
+        graph = ProcessGraph.applyWeights(graph, "weights.ampliado.xml"); // Load Distance (m) -> 11
+        graph = ProcessGraph.divideWeights(graph, 11L, 10L, 0L, 3.6f); // time (s) -> 0
 
         graph = ProcessGraph.addValuesGraph(graph, "malaga.opendata.noise.mod.ssv"); // Load Noise -> 1
-/*
+
+        graph = ProcessGraph.computeRandomWeights(graph, 0L, 0.9f, 1.1f, 2L);
         ProcessGraph.printGraph(graph, "new-malaga-graph.xml");
+        ProcessGraph.printWeights(graph, "weights_time-noise_COMPLETE.xml");
+
+        graph.getWeightsMatrix().column(10L).clear();
+        graph.getWeightsMatrix().column(11L).clear();
         ProcessGraph.printWeights(graph, "weights_time-noise.xml");
 
+/*
         graph = prepareGraph();
         ProcessGraph.printRandomWeights(graph, "wVar0.xml", 0L, 0.9f, 1.1f, 2);
         ProcessGraph.printRandomWeights(graph, "wVar1.xml", 1L, 0.9f, 1.1f, 3);

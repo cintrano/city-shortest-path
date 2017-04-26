@@ -301,7 +301,7 @@ public class RunMain {
 
     private static void rDijkstraExperiments(GraphTable graph, Long[] randomPoints) {
         Long[] objectives = new Long[]{0L, 1L, 2L, 3L};
-        float[] weights = new float[]{0.001f, 0.25f, 0.75f, 1.0f};
+        float[] weights = new float[]{0.0001f, 0.25f, 0.75f, 1.0f};
 
         for (int w0 = 0; w0 < weights.length; w0++) {
             for (int w1 = 0; w1 < weights.length; w1++) {
@@ -333,7 +333,7 @@ public class RunMain {
 
 
     private static void rAstarExperiments(GraphTable graph, Long[] randomPoints) {
-        float[] weights = new float[]{0.001f, 0.25f, 0.75f, 1.0f};
+        float[] weights = new float[]{0.0001f, 0.25f, 0.75f, 1.0f};
 
         for (int w0 = 0; w0 < weights.length; w0++) {
             for (int w1 = 0; w1 < weights.length; w1++) {
@@ -808,13 +808,13 @@ public class RunMain {
 
     private static GraphTable prepareGraph() {
         // Graph
-        String graphFilePath = "graph_connected.xml";
-        String weightFilePath0 = "wNew.xml";
+        String graphFilePath = "new-malaga-graph.xml";//"graph_connected.xml";
+        String weightFilePath0 = "weights_time-noise.xml";//"wNew.xml";
         GraphTable graph = ProcessGraph.parserFile(graphFilePath);
-        System.out.println("Adding weight to the graph...");
         graph = ProcessGraph.applyWeights(graph, weightFilePath0);
-        graph = ProcessGraph.applyWeights(graph, "wVar0.xml");
-        graph = ProcessGraph.applyWeights(graph, "wVar1.xml");
+        //graph = ProcessGraph.applyWeights(graph, "wVar0.xml");
+        //graph = ProcessGraph.applyWeights(graph, "wVar1.xml");
+        graph.getWeightsMatrix().column(10L).clear();
         graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
         return graph;
     }

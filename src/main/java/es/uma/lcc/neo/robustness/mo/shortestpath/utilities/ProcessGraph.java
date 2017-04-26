@@ -640,6 +640,17 @@ public class ProcessGraph {
         System.out.println("...wrote file");
     }
 
+    public static GraphTable computeRandomWeights(GraphTable graph, Long baseType, float lowerBound, float upperBound, Long type) {
+        Random random = new Random(type);
+        float value;
+        for (Long arcId : graph.getWeightsMatrix().rowKeySet()) {
+            value = ((( upperBound - lowerBound) * random.nextFloat()) + lowerBound)
+                    * graph.getWeightsMatrix().get(arcId, baseType);
+            graph.getWeightsMatrix().put(arcId, type, value);
+        }
+        return graph;
+    }
+
     public static void computeBounds(GraphTable graph) {
         Float value;
         for (Long type : graph.getWeightsMatrix().columnKeySet()) {
@@ -806,10 +817,10 @@ public class ProcessGraph {
         return path;
     }
 
-    public static GraphTable divideWeights(GraphTable graph, long w1, long w2, long res) {
-        for (Long arc : graph.getAdjacencyMatrix().rowKeySet()) {
+    public static GraphTable divideWeights(GraphTable graph, long w1, long w2, long res, float k) {
+        for (Long arc : graph.getWeightsMatrix().rowKeySet()) {
             graph.getWeightsMatrix().put(arc, res,
-                    graph.getWeightsMatrix().get(arc, w1) / graph.getWeightsMatrix().get(arc, w2));
+                    k * graph.getWeightsMatrix().get(arc, w1) / graph.getWeightsMatrix().get(arc, w2));
         }
         return graph;
     }
@@ -878,8 +889,8 @@ public class ProcessGraph {
 
         float mean = 0.0f, sd = 0.0f;
         for (int i = 0; i < dim; i++) {
-            mean += input.get(i)[3]*distances[i]/sum;
-            sd += input.get(i)[4]*distances[i]/sum;
+            mean += input.get(i)[2]*distances[i]/sum;
+            sd += input.get(i)[3]*distances[i]/sum;
         }
         node.setNoiseMean(mean/dim);
         node.setNoiseSD(sd/dim);
