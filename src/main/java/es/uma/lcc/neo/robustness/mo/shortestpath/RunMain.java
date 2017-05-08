@@ -808,8 +808,8 @@ public class RunMain {
 
     private static GraphTable prepareGraph() {
         // Graph
-        String graphFilePath = "new-malaga-graph.xml";//"graph_connected.xml";
-        String weightFilePath0 = "weights_time-noise.xml";//"wNew.xml";
+        String graphFilePath = "hbefa-malaga-graph.xml";//"new-malaga-graph.xml";//"graph_connected.xml";
+        String weightFilePath0 = "weights_time-hbefa.xml";//"weights_time-noise.xml";//"wNew.xml";
         GraphTable graph = ProcessGraph.parserFile(graphFilePath);
         graph = ProcessGraph.applyWeights(graph, weightFilePath0);
         //graph = ProcessGraph.applyWeights(graph, "wVar0.xml");
