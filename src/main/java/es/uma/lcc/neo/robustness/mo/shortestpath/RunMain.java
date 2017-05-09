@@ -73,10 +73,10 @@ public class RunMain {
         System.out.println();
 
         if (args[0].equals("PrepareGraph")) {
-            GraphTable graph = prepareGraph();
-            ProcessGraph.printRandomWeights(graph, "wVar0.xml", 0L, 0.9f, 1.1f, 2);
-            ProcessGraph.printRandomWeights(graph, "wVar1.xml", 1L, 0.9f, 1.1f, 3);
-            ProcessGraph.printMapping(graph);
+            //GraphTable graph = prepareGraph();
+            //ProcessGraph.printRandomWeights(graph, "wVar0.xml", 0L, 0.9f, 1.1f, 2);
+            //ProcessGraph.printRandomWeights(graph, "wVar1.xml", 1L, 0.9f, 1.1f, 3);
+            //ProcessGraph.printMapping(graph);
         }
 
         if (args.length >= 3) {
@@ -84,17 +84,18 @@ public class RunMain {
             // Map
             if (args[0].equals("Malaga")) {
                 System.out.println("Loading graph...");
-                graph = prepareGraph();
+                graph = prepareGraph("hbefa-malaga-graph.xml", "weights_time-hbefa.xml", "mapping-malaga.txt", "MAL");
                 graph = ProcessGraph.fixVertexIndex(graph);
             } else if (args[0].equals("Colorado")) {
-                graph = prepareSimpleColoradoGraph();
+                graph = prepareGraph("hbefa-col-graph.xml", "col_weights_time-hbefa-MOD.xml", "mapping-col.txt", "COL");
+                //graph = prepareSimpleColoradoGraph();
             }
 
             // Points
             System.out.print("Reading points...");
             Long[] points = null;
             if (!args[2].equals("default")) {
-                points = readPoints(args[2]);
+                points = readPoints(args[2], args[0]);
             } else if (args[0].equals("Colorado") && args[2].equals("default")) {
                 points = new Long[]{8L, 720L};
             } else if (args[0].equals("Colorado") && args[2].equals("default2")) {
@@ -132,7 +133,7 @@ public class RunMain {
         }
 
         if (args[0].equals("Google")) {
-            GraphTable graph = prepareGraph();
+            GraphTable graph = null;// = prepareGraph();
 
             for (int aSeed : seed) {
                 for (int i = 0; i < points.length - 1; i++) {
@@ -144,7 +145,7 @@ public class RunMain {
             }
         }
         if (args[0].equals("GoogleMO")) {
-            GraphTable graph = prepareGraph();
+            GraphTable graph = null;// = prepareGraph();
 
             for (int aSeed : seed) {
                 for (int i = 0; i < points.length - 1; i++) {
@@ -267,12 +268,16 @@ public class RunMain {
     }
 
 
-    private static Long[] readPoints(String idString) {
+    private static Long[] readPoints(String idString, String city) {
         int id = Integer.parseInt(idString);
         Long[] points = null;
         BufferedReader br = null;
         try {
-            br = new BufferedReader(new FileReader("input.data"));
+            if (city.equals("Malaga")) {
+                br = new BufferedReader(new FileReader("input-MAL.data"));
+            } else if (city.equals("Colorado")) {
+                br = new BufferedReader(new FileReader("input-COL.data"));
+            }
             String line = br.readLine();
 
             int count = 0;
@@ -806,16 +811,20 @@ public class RunMain {
         return graph;
     }
 
-    private static GraphTable prepareGraph() {
+    private static GraphTable prepareGraph(String graphFilePath, String weightFilePath0, String mapping, String tag) {
         // Graph
-        String graphFilePath = "hbefa-malaga-graph.xml";//"new-malaga-graph.xml";//"graph_connected.xml";
-        String weightFilePath0 = "weights_time-hbefa.xml";//"weights_time-noise.xml";//"wNew.xml";
+        //String graphFilePath = "hbefa-malaga-graph.xml";//"new-malaga-graph.xml";//"graph_connected.xml";
+        //String weightFilePath0 = "weights_time-hbefa.xml";//"weights_time-noise.xml";//"wNew.xml";
         GraphTable graph = ProcessGraph.parserFile(graphFilePath);
-        graph = ProcessGraph.applyWeights(graph, weightFilePath0);
+        if (tag.equals("COL")) {
+            graph = ProcessGraph.readWeights(graph, weightFilePath0);
+        } else {
+            graph = ProcessGraph.applyWeights(graph, weightFilePath0);
+        }
         //graph = ProcessGraph.applyWeights(graph, "wVar0.xml");
         //graph = ProcessGraph.applyWeights(graph, "wVar1.xml");
         graph.getWeightsMatrix().column(10L).clear();
-        graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
+        graph = ProcessGraph.applyMapping(graph, mapping);
         return graph;
     }
 

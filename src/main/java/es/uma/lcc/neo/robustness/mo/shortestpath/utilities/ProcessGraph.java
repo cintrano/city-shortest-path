@@ -48,7 +48,8 @@ public class ProcessGraph {
 
             NodeList nList = doc.getElementsByTagName("node");
             System.out.println("Load nodes: " + nList.getLength());
-            for (int temp = 0; temp < nList.getLength(); temp++) {
+            int size = nList.getLength();
+            for (int temp = 0; temp < size; temp++) {
                 org.w3c.dom.Node nNode = nList.item(temp);
                 Element eElement = (Element) nNode;
                 graph.getIntersections().put(
@@ -62,21 +63,29 @@ public class ProcessGraph {
 
             nList = doc.getElementsByTagName("arc");
             System.out.println("Load arcs: " + nList.getLength());
-            for (int temp = 0; temp < nList.getLength(); temp++) {
-                org.w3c.dom.Node nNode = nList.item(temp);
-                Element eElement = (Element) nNode;
+            //org.w3c.dom.Node nNode;
+            Element eElement;
+            size = nList.getLength();
+            for (int temp = 0; temp < size; temp++) {
+                //nNode = nList.item(temp);
+
+                eElement = (Element) nList.item(temp);//nNode;
+
                 graph.getAdjacencyMatrix().put(
                         Long.parseLong(eElement.getAttribute("from")),
                         Long.parseLong(eElement.getAttribute("to")),
                         Long.parseLong(eElement.getAttribute("arcid"))
                 );
-                if (eElement.getAttribute("type") != null) {
+                /*
+                if (eElement.getAttribute("type") != null && !eElement.getAttribute("type").equals("")) {
+                    System.out.println(eElement.getAttribute("type"));
                     graph.getWeightsMatrix().put(
                             Long.parseLong(eElement.getAttribute("arcid")),
                             10L,
                             getSpeed(eElement.getAttribute("type"))
                     );
                 }
+                */
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -195,20 +204,48 @@ public class ProcessGraph {
             doc.getDocumentElement().normalize();
 
             NodeList nList = doc.getElementsByTagName("weight");
-
-            for (int temp = 0; temp < nList.getLength(); temp++) {
-                org.w3c.dom.Node nNode = nList.item(temp);
-                if (nNode.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                    Element eElement = (Element) nNode;
+            int size = nList.getLength();
+            Element eElement;
+            for (int temp = 0; temp < size; temp++) {
+                    eElement = (Element) nList.item(temp);
                     graph.getWeightsMatrix().put(
                             Long.parseLong(eElement.getAttribute("arcid")),
                             Long.parseLong(eElement.getAttribute("type")),
                             Float.parseFloat(eElement.getAttribute("value"))
                     );
-                }
+
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        System.out.println("added");
+        return graph;
+    }
+
+    public static GraphTable readWeights(GraphTable graph, String file) {
+        System.out.print("Adding weight to the graph...");
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            String line = br.readLine();
+
+            while (line != null && line.length() > 0) {
+                String[] array = line.split(" ");
+                graph.getWeightsMatrix().put(
+                        Long.parseLong(array[0]),
+                        Long.parseLong(array[2]),
+                        Float.parseFloat(array[1])
+                );
+                line = br.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) try {
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         System.out.println("added");
         return graph;
@@ -734,7 +771,7 @@ public class ProcessGraph {
             br = new BufferedReader(new FileReader(file));
             String line = br.readLine();
 
-            while (line != null) {
+            while (line != null && line.length() > 0) {
                 String[] array = line.split(" ");
                 mapping.put(Long.parseLong(array[0]), Long.parseLong(array[1]));
                 line = br.readLine();

@@ -18,7 +18,30 @@ public class GraphUtilitiesMain {
         }
         System.out.println();
         //generateMalagaMapFiles();
-        generateMalagaHBEFAWeight();
+        //generateMalagaHBEFAWeight();
+        prepareSimpleColoradoWeights();
+
+    }
+
+    private static void prepareSimpleColoradoWeights() {
+        GraphTable graph = ProcessGraph.parserFile("USA-road-d.COL.co");
+        graph = ProcessGraph.applyArcs(graph, 11L, "USA-road-d.COL.gr");
+        graph = ProcessGraph.applyArcs(graph, 0L, "USA-road-t.COL.gr");
+
+        graph = HBEFAWeightToGraph(graph, 11L, 0L, 1L, 1);
+
+        graph = ProcessGraph.computeRandomWeights(graph, 0L, 0.9f, 1.1f, 2L);
+        graph = ProcessGraph.computeRandomWeights(graph, 1L, 0.9f, 1.1f, 3L);
+
+        graph = ProcessGraph.applyMapping(graph, "mapping-col.txt");
+
+        ProcessGraph.printGraph(graph, "hbefa-col-graph.xml");
+        ProcessGraph.printWeights(graph, "col_weights_time-hbefa_COMPLETE.xml");
+
+        graph.getWeightsMatrix().column(11L).clear();
+        //graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
+
+        ProcessGraph.printWeights(graph, "col_weights_time-hbefa.xml");
 
     }
 
@@ -52,6 +75,16 @@ public class GraphUtilitiesMain {
         float v, value;
         for (Long arc : graph.getWeightsMatrix().rowKeySet()) {
             v = graph.getWeightsMatrix().get(arc, speed) * k;
+            value = (float) Math.max(0f, 2166.094 + (124.9567 * v) + ( -0.9551173 * v * v) + (0.013322 * v * v * v));
+            graph.getWeightsMatrix().put(arc, res, value);
+        }
+        return graph;
+    }
+
+    private static GraphTable HBEFAWeightToGraph(GraphTable graph, long space, long time, long res, int k) {
+        float v, value;
+        for (Long arc : graph.getWeightsMatrix().rowKeySet()) {
+            v = graph.getWeightsMatrix().get(arc, space) * k / graph.getWeightsMatrix().get(arc, time);
             value = (float) Math.max(0f, 2166.094 + (124.9567 * v) + ( -0.9551173 * v * v) + (0.013322 * v * v * v));
             graph.getWeightsMatrix().put(arc, res, value);
         }
