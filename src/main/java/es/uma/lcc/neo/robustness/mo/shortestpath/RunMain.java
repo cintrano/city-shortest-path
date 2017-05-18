@@ -89,6 +89,9 @@ public class RunMain {
             } else if (args[0].equals("Colorado")) {
                 graph = prepareGraph("hbefa-col-graph.xml", "col_weights_time-hbefa-MOD.xml", "mapping-col.txt", "COL");
                 //graph = prepareSimpleColoradoGraph();
+            } else if (args[0].equals("NY")) {
+                graph = prepareGraph("hbefa-ny-graph.xml", "ny_weights_time-hbefa.xml", "mapping-ny.txt", "NY");
+                //graph = prepareSimpleColoradoGraph();
             }
 
             // Points
@@ -277,6 +280,8 @@ public class RunMain {
                 br = new BufferedReader(new FileReader("input-MAL.data"));
             } else if (city.equals("Colorado")) {
                 br = new BufferedReader(new FileReader("input-COL.data"));
+            } else if (city.equals("NY")) {
+                br = new BufferedReader(new FileReader("input-NY.data"));
             }
             String line = br.readLine();
 

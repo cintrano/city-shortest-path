@@ -19,7 +19,30 @@ public class GraphUtilitiesMain {
         System.out.println();
         //generateMalagaMapFiles();
         //generateMalagaHBEFAWeight();
-        prepareSimpleColoradoWeights();
+        //prepareSimpleColoradoWeights();
+        prepareSimpleNYWeights();
+
+    }
+
+    private static void prepareSimpleNYWeights() {
+        GraphTable graph = ProcessGraph.parserFile("USA-road-d.NY.co");
+        graph = ProcessGraph.applyArcs(graph, 11L, "USA-road-d.NY.gr");
+        graph = ProcessGraph.applyArcs(graph, 0L, "USA-road-t.NY.gr");
+
+        graph = HBEFAWeightToGraph(graph, 11L, 0L, 1L, 1);
+
+        graph = ProcessGraph.computeRandomWeights(graph, 0L, 0.9f, 1.1f, 2L);
+        graph = ProcessGraph.computeRandomWeights(graph, 1L, 0.9f, 1.1f, 3L);
+
+        graph = ProcessGraph.applyMapping(graph, "mapping-ny.txt");
+
+        ProcessGraph.printGraph(graph, "hbefa-ny-graph.xml");
+        ProcessGraph.printWeights(graph, "ny_weights_time-hbefa_COMPLETE.xml");
+
+        graph.getWeightsMatrix().column(11L).clear();
+        //graph = ProcessGraph.applyMapping(graph, "mapping-malaga.txt");
+
+        ProcessGraph.printWeights(graph, "ny_weights_time-hbefa.xml");
 
     }
 
