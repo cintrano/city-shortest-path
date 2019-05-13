@@ -16,6 +16,7 @@ public class GraphTable {
     //private Map<Long, Set<Weight>> weights;
 
     private Map<Long, Node> intersections;
+    private Map<Node, Long> inverseIntersections;
     private Table<Long, Long, Float> weightsMatrix;
     private Table<Long, Long, Long> adjacencyMatrix;
 
@@ -30,6 +31,7 @@ public class GraphTable {
         //weights = new HashMap<Long, Set<Weight>>();
 
         intersections = new HashMap<Long, Node>();
+        inverseIntersections = new HashMap<Node, Long>();
         weightsMatrix = HashBasedTable.create();
         adjacencyMatrix = HashBasedTable.create();
 
@@ -182,5 +184,9 @@ public class GraphTable {
 
     public Map<Long, Long> getMapping() {
         return mapping;
+    }
+
+    public Map<Node, Long> getInverseIntersections() {
+        return inverseIntersections;
     }
 }

@@ -51,29 +51,39 @@
         <dependency>
             <groupId>org.uma.jmetal</groupId>
             <artifactId>jmetal-core</artifactId>
-            <version>5.0</version>
+            <version>5.6</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.uma.jmetal/jmetal-algorithm -->
         <dependency>
             <groupId>org.uma.jmetal</groupId>
             <artifactId>jmetal-algorithm</artifactId>
-            <version>5.0</version>
+            <version>5.6</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.uma.jmetal/jmetal-exec -->
         <dependency>
             <groupId>org.uma.jmetal</groupId>
             <artifactId>jmetal-exec</artifactId>
-            <version>5.0</version>
+            <version>5.6</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.uma.jmetal/jmetal-problem -->
         <dependency>
             <groupId>org.uma.jmetal</groupId>
             <artifactId>jmetal-problem</artifactId>
-            <version>5.0</version>
+            <version>5.6</version>
         </dependency>
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/resources</directory>
+                <includes>
+                    <include>**/*.txt</include>
+                    <include>**/*.rtf</include>
+                    <include>**/*.dat</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <!-- any other plugins -->
             <plugin>
@@ -96,8 +106,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
             </plugin>
         </plugins>

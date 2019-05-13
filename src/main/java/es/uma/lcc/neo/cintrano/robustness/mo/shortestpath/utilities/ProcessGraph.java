@@ -59,6 +59,9 @@ public class ProcessGraph {
                                 eElement.getAttribute("lat"),
                                 eElement.getAttribute("lon"))
                 );
+                graph.getInverseIntersections().put(graph.getIntersections().get(Long.parseLong(eElement.getAttribute("id"))),
+                        Long.parseLong(eElement.getAttribute("id"))
+                );
             }
 
             nList = doc.getElementsByTagName("arc");

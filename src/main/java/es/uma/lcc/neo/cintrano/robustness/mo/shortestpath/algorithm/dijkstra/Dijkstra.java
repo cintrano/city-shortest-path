@@ -112,6 +112,7 @@ public class Dijkstra {
         while (predecessors.get(step) != null) {
             step = predecessors.get(step);
             path.add(graph.getIntersections().get(step));
+            System.out.println("-------" + step + " "+ graph.getIntersections().get(step).getId());
         }
         // Put it into the correct order
         Collections.reverse(path);

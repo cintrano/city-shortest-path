@@ -44,7 +44,7 @@ public class Node{
 
     @Override
     public String toString() {
-        return name;
+        return "" + id;
     }
 
     public long getId() {

@@ -1,8 +1,12 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath;
 
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.AstarMO;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDim;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.IteratedLS;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblem;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblemDouble;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDifferentialEvolutionCrossover;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Crossover1PLS;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Mutation1PChangeD;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.Pulse;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.PulseMO;
@@ -10,9 +14,6 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Grap
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.AstarMO;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblem;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Crossover1PLS;
 import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEAD;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEADSTM;
@@ -33,12 +34,12 @@ import static org.uma.jmetal.util.AbstractAlgorithmRunner.printFinalSolutionSet;
  * Created by Christian Cintrano on 22/01/17.
  * Main Class
  */
-public class RunMain {
+public class RunTLMain {
 
     private final static int[] seed = new int[]{0, 3, 23, 29, 67, 79, 97, 101, 139, 199, 211, 269, 311, 347, 389,
             431, 461, 503, 569, 601, 607, 653, 691, 701, 733, 739, 761, 809, 811, 997};
 
-    private final static Long[] objectives = new Long[]{0L, 1L, 2L, 3L};
+    public final static Long[] objectives = new Long[]{0L, 1L, 2L, 3L};
     private final static float[] weights = new float[]{0.0001f, 0.25f, 0.5f, 0.75f, 1.0f};
 
     public static void main (String[] args) {
@@ -54,8 +55,7 @@ public class RunMain {
             switch (args[0]) {
                 case "Malaga":
                     System.out.println("Loading graph...");
-                    //graph = ProcessGraph.prepareGraph("hbefa-malaga-graph.xml", "weights_time-hbefa.xml", "mapping-malaga.txt", "MAL");
-                    graph = ProcessGraph.prepareGraph("hbefa-malaga-graph.xml", "weights_time-nox.xml", "mapping-malaga.txt", "MAL");
+                    graph = ProcessGraph.prepareGraph("hbefa-malaga-graph.xml", "weights_time-hbefa.xml", "mapping-malaga.txt", "MAL");
                     ProcessGraph.fixVertexIndex(graph);
                     break;
                 case "Colorado":
@@ -107,6 +107,10 @@ public class RunMain {
                         System.out.println("Run NSGA-III...");
                         rNSGAIII(graph, points, seed[Integer.parseInt(args[3])]);
                         break;
+                    case "Iterated":
+                        System.out.println("Run Iterated...");
+                        rIterated(graph, points, seed[Integer.parseInt(args[3])]);
+                        break;
                 }
             }
         }
@@ -115,7 +119,7 @@ public class RunMain {
     }
 
 
-    static Long[] readPoints(int id, String city) {
+    private static Long[] readPoints(int id, String city) {
         Long[] points = null;
         BufferedReader br = null;
         try {
@@ -154,6 +158,20 @@ public class RunMain {
         return points;
     }
 
+
+
+    private static void rIterated(GraphTable graph, Long[] points, int seed) {
+        long timeInit = System.currentTimeMillis();
+        IteratedLS algorithm = new IteratedLS(seed);
+        algorithm.setGraph(graph);
+        long timeStart = System.currentTimeMillis();
+        List<Node> path = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
+        long timeEnd = System.currentTimeMillis();
+        String wTag = "1-1-1-1";
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Iterated", wTag);
+
+    }
+
     private static void rDijkstraExperiments(GraphTable graph, Long[] randomPoints) {
         for (float w0 : weights) {
             for (float w1 : weights) {
@@ -168,7 +186,7 @@ public class RunMain {
 
     private static void rDijkstraWD(GraphTable graph, Long[] randomPoints, float[] weights) {
         long timeInit = System.currentTimeMillis();
-        DijkstraWNDim dj = new DijkstraWNDim(RunMain.objectives);
+        DijkstraWNDim dj = new DijkstraWNDim(RunTLMain.objectives);
         dj.setWeights(weights);
         dj.setGraph(graph);
         long timeStart = System.currentTimeMillis();
@@ -288,7 +306,7 @@ public class RunMain {
     }
 
 
-    private static Map<Long, List<double[]>> fitnessAll = new HashMap<Long, List<double[]>>();
+    private static Map<Long, List<double[]>> fitnessAll = new HashMap<>();
     private static Map<Long, List<Double[]>> solutions = new HashMap<>();
     private static void rNSGAII(GraphTable graph, Long[] points, long seed) {
         executeAlgorithm(
@@ -345,69 +363,19 @@ public class RunMain {
 
         String label = "Colorado_" + seed + "_";
         Algorithm algorithm = null;
-        /*
-        if (metaheuristic.equals("NSGAII")) {
-            double mutationDistributionIndex = 20.0 ;
-            mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
-            label += "NSGAII";
-            final BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> selection = new BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>(new RankingAndCrowdingDistanceComparator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>());
-            SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>();
 
-            algorithm = new NSGAIIMeasures<>(problem, numIterations, populationSize, crossover, mutation, selection, new DominanceComparator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>(), evaluator);
-            final MeasureManager measures = ((NSGAIIMeasures) algorithm).getMeasureManager();
-            PushMeasure<Object> pushMeasure = measures.getPushMeasure("currentIteration");
-            //final Algorithm<List<NodePathSolution>> finalAlgorithm = algorithm;
-            final Algorithm finalAlgorithm = algorithm;
-            pushMeasure.register(new MeasureListener<Object>() {
-                public void measureGenerated(Object o) {
-                    fillLog((List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>) ((NSGAIIMeasures) finalAlgorithm).getPopulation(), o);
-                }
-            });
-        }
-        */
         if (metaheuristic.equals("MOEAD")) {
             double mutationDistributionIndex = 20.0 ;
             mutation = new Mutation1PChangeD((MOShortestPathProblemDouble) problem, mutationProbability, mutationDistributionIndex);
             label += "MOEAD";
-            //final BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> selection = new BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>(new RankingAndCrowdingDistanceComparator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>());
-            //SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>();
-
 
             algorithm = new MOEADSTM(problem, populationSize, populationSize, numIterations, mutation, new MyDifferentialEvolutionCrossover(0.5, 0.5, "rand/1/bin"), MOEAD.FunctionType.TCHE, "es/uma/lcc/neo/cintrano/robustness/mo/shortestpath", 0.9, 5, 5);//selection, evaluator);
             InputStream in = algorithm.getClass().getResourceAsStream("/" + "" + "/" + "/W4D_10.dat");
             System.out.println(in);
             System.out.println(algorithm.getClass().getName());
-            //final MeasureManager measures = ((NSGAIIMeasures) algorithm).getMeasureManager();
-            //PushMeasure<Object> pushMeasure = measures.getPushMeasure("currentIteration");
-            //final Algorithm<List<NodePathSolution>> finalAlgorithm = algorithm;
-            //final Algorithm finalAlgorithm = algorithm;
-            //pushMeasure.register(new MeasureListener<Object>() {
-            //    public void measureGenerated(Object o) {
-            //        fillLog((List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>) ((NSGAIIMeasures) finalAlgorithm).getPopulation(), o);
-            //    }
-            //});
-        }
-        /*
-        if (metaheuristic.equals("MOCell")) {
-            double mutationDistributionIndex = 20.0 ;
-            mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
-            label += "MOCell";
-            algorithm = new MOCellBuilder<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>(problem, crossover, mutation)
-                    .setMaxEvaluations(numIterations)
-                    .setPopulationSize(populationSize)
-                    .build();
-        }
-        if (metaheuristic.equals("SPEA2")) {
-            double mutationDistributionIndex = 20.0 ;
-            mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
-            label += "SPEA2";
 
-            algorithm = new SPEA2Builder<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>(problem, crossover, mutation)
-                    .setMaxIterations(numIterations)
-                    .setPopulationSize(populationSize)
-                    .build();
         }
-        */
+
 
         if (algorithm != null) {
             AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
@@ -418,35 +386,15 @@ public class RunMain {
             JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
 
             fillLog(population, 111L);
-            /*
-            for (NodePathSolution solution : population) {
-                System.out.println(solution);
-            }
-            */
             printStaticFinalLog(algorithm, computingTime, label);
-//            printFinalLog(algorithm, computingTime, label);
 
             printFinalSolutionSet(population);
         }
     }
-    /*
-    private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> population, Object o) {
-        List<double[]> f = new ArrayList<double[]>();
-        List<Long[]> v = new ArrayList<Long[]>();
-        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution solution : population) {
-            //lista.add(solution.getObjective(0));
-            f.add(solution.getObjectives());
-            v.add(solution.getVariables());
-        }
-        fitnessAll.put((Long) o, f);
-        solutions.put((Long) o, v);
-    }
-*/
     private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population, Object o) {
-        List<double[]> f = new ArrayList<double[]>();
-        List<Double[]> v = new ArrayList<Double[]>();
+        List<double[]> f = new ArrayList<>();
+        List<Double[]> v = new ArrayList<>();
         for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution solution : population) {
-            //lista.add(solution.getObjective(0));
             f.add(solution.getObjectives());
             v.add(solution.getVariables());
         }

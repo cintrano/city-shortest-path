@@ -106,4 +106,14 @@ public class Crossover1PLS implements CrossoverOperator<NodePathSolution> {
         }
         return solutions;
     }
+
+    @Override
+    public int getNumberOfRequiredParents() {
+        return 2;
+    }
+
+    @Override
+    public int getNumberOfGeneratedChildren() {
+        return 2;
+    }
 }

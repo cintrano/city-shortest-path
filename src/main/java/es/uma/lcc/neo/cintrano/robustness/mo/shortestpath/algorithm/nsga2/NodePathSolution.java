@@ -11,7 +11,7 @@ import java.util.Map;
  * Created by christian on 5/12/16.
  * Path solution in the graph
  */
-public class NodePathSolution implements Solution<Long>, SolutionAttribute<NodePathSolution, Integer> {
+public class NodePathSolution implements Solution<Long> {
 //public class NodePathSolution implements RankingSolution, CrowdingDistanceSolution {
 //public class NodePathSolution implements SolutionAttribute<NodePathSolution, V> {
     private double[] objectives;
@@ -65,8 +65,18 @@ public class NodePathSolution implements Solution<Long>, SolutionAttribute<NodeP
         return this;
     }
 
-    private Map<Object, Object> attributes = new HashMap<Object, Object>();
+    @Override
+    public void setAttribute(Object o, Object o1) {
 
+    }
+
+    @Override
+    public Object getAttribute(Object o) {
+        return null;
+    }
+
+    private Map<Object, Object> attributes = new HashMap<Object, Object>();
+/*
     public void setAttribute(Object id, Object value) {
         attributes.put(id, value);
     }
@@ -74,6 +84,7 @@ public class NodePathSolution implements Solution<Long>, SolutionAttribute<NodeP
     public Object getAttribute(Object id) {
         return attributes.get(id);
     }
+    */
 /*
     public void setAttribute(Object o, Object o1) {
 
