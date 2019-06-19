@@ -117,6 +117,11 @@ public class RunTLMain {
                         break;
                 }
             }
+        } else if (args[0].equals("Mapping")) {
+
+            GraphTable graph = ProcessGraph.parserFile(args[1]);
+            assert graph != null;
+            ProcessGraph.printMapping(graph);
         }
 
         System.out.println("=== END EXPERIMENTS ===");
