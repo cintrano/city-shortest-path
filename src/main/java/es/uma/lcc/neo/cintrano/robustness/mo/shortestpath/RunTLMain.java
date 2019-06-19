@@ -14,6 +14,9 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Grap
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEAD;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEADSTM;
@@ -57,6 +60,7 @@ public class RunTLMain {
                     System.out.println("Loading graph...");
                     graph = ProcessGraph.prepareGraph("hbefa-malaga-graph.xml", "weights_time-hbefa.xml", "mapping-malaga.txt", "MAL");
                     ProcessGraph.fixVertexIndex(graph);
+                    ProcessGraph.readTlLogics(graph, "sumo_processed.json");
                     break;
                 case "Colorado":
                     graph = ProcessGraph.prepareGraph("hbefa-col-graph.xml", "col_weights_time-hbefa-MOD.xml", "mapping-col.txt", "COL");
@@ -117,6 +121,8 @@ public class RunTLMain {
 
         System.out.println("=== END EXPERIMENTS ===");
     }
+
+
 
 
     private static Long[] readPoints(int id, String city) {

@@ -5,6 +5,7 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.Dij
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDimForbidden;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
 
 import java.util.*;
 
@@ -99,7 +100,15 @@ public class IteratedLS {
                 long arc = graph.getAdjacencyMatrix().get(n1, n2);
                 float mu = graph.getWeightsMatrix().get(arc, 0L); // TODO Change to the final weight
                 float sigma = graph.getWeightsMatrix().get(arc, 1L); // TODO Change to the final weight
-                cost += rand.nextGaussian() * sigma + mu;
+                double tentativeTime = rand.nextGaussian() * sigma + mu;
+                // TrafficLight phase
+                TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                cost += tentativeTime;
+                if (tl != null) {
+                    int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
+                    cost += time;
+                }
+
             }
             amount += cost;
         }

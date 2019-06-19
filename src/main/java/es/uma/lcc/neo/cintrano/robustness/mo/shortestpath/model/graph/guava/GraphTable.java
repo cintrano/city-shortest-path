@@ -19,6 +19,7 @@ public class GraphTable {
     private Map<Node, Long> inverseIntersections;
     private Table<Long, Long, Float> weightsMatrix;
     private Table<Long, Long, Long> adjacencyMatrix;
+    private Table<Long, Long, TlLogic> tlMatrix;
 
     // <type, minWeight>
     private Map<Long, Float> lowerBound;
@@ -108,6 +109,10 @@ public class GraphTable {
 
     public Table<Long, Long, Long> getAdjacencyMatrix() {
         return adjacencyMatrix;
+    }
+
+    public Table<Long, Long, TlLogic> getTlMatrix() {
+        return tlMatrix;
     }
 
     public void setAdjacencyMatrix(Table<Long, Long, Long> adjacencyMatrix) {

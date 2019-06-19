@@ -4,6 +4,10 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -252,6 +256,37 @@ public class ProcessGraph {
         }
         System.out.println("added");
         return graph;
+    }
+
+    public static void readTlLogics(GraphTable graph, String filename) {
+        JSONParser parser = new JSONParser();
+        try {
+
+            Object obj = parser.parse(new FileReader(filename));
+
+            JSONArray jsonRootObject = (JSONArray) obj;
+            for (JSONObject item : (Iterable<JSONObject>) jsonRootObject) {
+                // TODO change to use the mapping of the nodes
+                // TODO String -> Long
+                Long nodeFrom = Long.parseLong((String) item.get("node_from"));
+                Long nodeTo = Long.parseLong((String) item.get("node_to"));
+                TlLogic tl = new TlLogic();
+                JSONArray phases = (JSONArray) item.get("phases");
+                int i = -1;
+                char[] aux  = new char[3];
+                for (JSONObject phase : (Iterable<JSONObject>) phases) {
+                    if (i == -1 || tl.getType()[i] != ((String) phase.get("state")).charAt(0)) {
+                        i++;
+                        aux[i] = ((String) phase.get("state")).charAt(0);
+                    }
+                    tl.addTime(i, Integer.parseInt((String) phase.get("duration")));
+                }
+                tl.setType(aux);
+                graph.getTlMatrix().put(nodeFrom, nodeTo, tl);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private static void getConnectedComponents(GraphTable graph) {
