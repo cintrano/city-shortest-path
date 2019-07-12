@@ -188,7 +188,7 @@ public class ProcessGraph {
     private static Long getMaxArcId(GraphTable graph) {
         Long max = 0L;
         if (!graph.getWeightsMatrix().rowKeySet().isEmpty()) {
-            List<Long> list = new ArrayList(graph.getWeightsMatrix().rowKeySet());
+            List<Long> list = new ArrayList<>(graph.getWeightsMatrix().rowKeySet());
             Collections.sort(list);
             max = list.get(list.size() - 1);
         }
@@ -272,24 +272,34 @@ public class ProcessGraph {
                 Long nodeTo = Long.parseLong((String) item.get("node_to"));
                 TlLogic tl = new TlLogic();
                 JSONArray phases = (JSONArray) item.get("phases");
-                int i = -1;
+                int i = 0;
                 char[] aux  = new char[3];
+                char current_light;
                 for (JSONObject phase : (Iterable<JSONObject>) phases) {
-                    if (i == -1 || tl.getType()[i] != ((String) phase.get("state")).charAt(0)) {
+                    current_light = ((String) phase.get("state")).charAt(0);
+                    //System.out.println(current_light);
+                    if (tl.getTime(current_light) == 0) {
+                        //System.out.println(i + " " + phase);
+                        aux[i] = current_light;
+                        tl.setType(i, aux[i]);
                         i++;
-                        aux[i] = ((String) phase.get("state")).charAt(0);
                     }
-                    tl.addTime(i, Integer.parseInt((String) phase.get("duration")));
+                    tl.addTime(current_light, Integer.parseInt((String) phase.get("duration")));
                 }
                 tl.setType(aux);
-                graph.getTlMatrix().put(nodeFrom, nodeTo, tl);
+                if (graph.getMapping().get(nodeFrom) != null && graph.getMapping().get(nodeTo) != null) {
+                    graph.getTlMatrix().put(graph.getMapping().get(nodeFrom), graph.getMapping().get(nodeTo), tl);
+                } else {
+                    System.out.print(".");
+                }
             }
+            System.out.println(graph.getTlMatrix().rowKeySet().size());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void getConnectedComponents(GraphTable graph) {
+    public static void getConnectedComponents(GraphTable graph) {
         Map<Long, Integer> ids = new HashMap<Long, Integer>(); // <key, nodeID>
         //Long[] ids = new Long[graph.getIntersections().size()];
         Long[] labels = new Long[graph.getIntersections().size()];
@@ -907,7 +917,6 @@ public class ProcessGraph {
         try {
             br = new BufferedReader(new FileReader(filename));
             String line = br.readLine();
-            line = br.readLine();
 
             while (line != null) {
                 String[] a = line.split(" ");
@@ -985,9 +994,9 @@ public class ProcessGraph {
         dist = Math.acos(dist);
         dist = rad2deg(dist);
         dist = dist * 60 * 1.1515;
-        if (unit == "K") {
+        if (unit.equals("K")) {
             dist = dist * 1.609344;
-        } else if (unit == "N") {
+        } else if (unit.equals("N")) {
             dist = dist * 0.8684;
         }
 

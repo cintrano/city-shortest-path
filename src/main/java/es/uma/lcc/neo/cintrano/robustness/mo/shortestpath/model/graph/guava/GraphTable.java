@@ -35,6 +35,7 @@ public class GraphTable {
         inverseIntersections = new HashMap<Node, Long>();
         weightsMatrix = HashBasedTable.create();
         adjacencyMatrix = HashBasedTable.create();
+        tlMatrix = HashBasedTable.create();
 
         lowerBound = new HashMap<Long, Float>();
         upperBound = new HashMap<Long, Float>();

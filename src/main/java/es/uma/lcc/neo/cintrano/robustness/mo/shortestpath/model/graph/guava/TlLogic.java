@@ -19,6 +19,10 @@ public class TlLogic {
         this.type = type;
     }
 
+    public void setType(int index, char type) {
+        this.type[index] = type;
+    }
+
     public int getTimeR() {
         return timeR;
     }
@@ -66,6 +70,15 @@ public class TlLogic {
         }
     }
 
+    public int getTime(char light) {
+        switch (light) {
+            case 'R': return timeR;
+            case 'G': return timeG;
+            case 'Y': return timeY;
+            default: return 'E';
+        }
+    }
+
     public int calculateTimeStop(long time) {
         int tlTotalTime = timeR + timeG + timeY;
         long rest = time % tlTotalTime;
@@ -86,6 +99,14 @@ public class TlLogic {
 
     public void addTime(int index, int time) {
         switch (type[index]) {
+            case 'R': timeR += time; break;
+            case 'G': timeG += time; break;
+            case 'Y': timeY += time; break;
+        }
+    }
+
+    public void addTime(char type, int time) {
+        switch (type) {
             case 'R': timeR += time; break;
             case 'G': timeG += time; break;
             case 'Y': timeY += time; break;

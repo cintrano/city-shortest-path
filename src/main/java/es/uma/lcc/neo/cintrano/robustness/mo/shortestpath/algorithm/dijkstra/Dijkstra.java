@@ -34,6 +34,12 @@ public class Dijkstra {
 
     public List<Node> getPath(Long from, Long to) {
         //System.out.println("From:" + from.getId() + " To:" + to.getId());
+        System.out.println("From:" + from + " To:" + to);
+        if (from == to) { // path with a single node
+            List<Node> path = new LinkedList<Node>();
+            path.add(graph.getIntersections().get(from));
+            return path;
+        }
 
         setShortestDistance(from, 0f);
         unvisited.add(from);

@@ -31,6 +31,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+import static es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph.getMaxConnectedComponent;
 import static org.uma.jmetal.util.AbstractAlgorithmRunner.printFinalSolutionSet;
 
 /**
@@ -58,15 +59,28 @@ public class RunTLMain {
             switch (args[0]) {
                 case "Malaga":
                     System.out.println("Loading graph...");
-                    graph = ProcessGraph.prepareGraph("hbefa-malaga-graph.xml", "weights_time-hbefa.xml", "mapping-malaga.txt", "MAL");
+                    //graph = ProcessGraph.prepareGraph("tl_map-MOD.xml", "tl_weights.xml", "mapping-malaga.txt", "MAL");
+                    //graph = ProcessGraph.prepareGraph("malaga-city.xml", "weights_time-hbefa.xml", "malaga.osm-mapping.txt", "MAL");
+                    graph = ProcessGraph.prepareGraph("malga.osm-tlgraph-CC.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
+                    ProcessGraph.getMaxConnectedComponent(graph, "malaga.osm-CC_tl_map.txt");
                     ProcessGraph.fixVertexIndex(graph);
-                    ProcessGraph.readTlLogics(graph, "sumo_processed.json");
+                    ProcessGraph.readTlLogics(graph, "malaga_tls.json");
                     break;
                 case "Colorado":
                     graph = ProcessGraph.prepareGraph("hbefa-col-graph.xml", "col_weights_time-hbefa-MOD.xml", "mapping-col.txt", "COL");
                     break;
                 case "NY":
                     graph = ProcessGraph.prepareGraph("hbefa-ny-graph.xml", "ny_weights_time-hbefa.xml", "mapping-ny.txt", "NY");
+                    break;
+                case "Graph":
+                    graph = ProcessGraph.prepareGraph("malga.osm-tlgraph.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
+                    ProcessGraph.printMapping(graph);
+                    ProcessGraph.getConnectedComponents(graph);
+                    ProcessGraph.printSCCs(graph);
+                    ProcessGraph.getMaxConnectedComponent(graph, "malaga.osm-CC_tl_map.txt");
+                    ProcessGraph.printGraph(graph, "malga.osm-tlgraph-CC.xml");
+                    ProcessGraph.getConnectedComponents(graph);
+                    ProcessGraph.printSCCs(graph);
                     break;
             }
 
@@ -179,7 +193,7 @@ public class RunTLMain {
         List<Node> path = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
         long timeEnd = System.currentTimeMillis();
         String wTag = "1-1-1-1";
-        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Iterated", wTag);
+        printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Iterated", wTag, seed);
 
     }
 
@@ -304,6 +318,35 @@ public class RunTLMain {
                 line += s.getObjectives()[3] + " ";
                 line += "\n";
                 out.write(line);
+
+        } catch (IOException e) {
+            // error processing code
+        } finally {
+            if (out != null) try {
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void printSolutions(GraphTable graph, NodePathSolution s, long t1, long t2, String algorithm, String i, int seed) {
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter("resultsFUN.ssv", true));
+            String line = graph.getMapping().get(s.getVariables()[0]) + " ";
+            line += graph.getMapping().get(s.getVariables()[s.getVariables().length-1]) + " ";
+            line += seed + " ";
+            line += t1 + " ";
+            line += t2 + " ";
+            line += algorithm + " ";
+            line += i + " ";
+            line += s.getObjectives()[0] + " ";
+            line += s.getObjectives()[1] + " ";
+            line += s.getObjectives()[2] + " ";
+            line += s.getObjectives()[3] + " ";
+            line += "\n";
+            out.write(line);
 
         } catch (IOException e) {
             // error processing code

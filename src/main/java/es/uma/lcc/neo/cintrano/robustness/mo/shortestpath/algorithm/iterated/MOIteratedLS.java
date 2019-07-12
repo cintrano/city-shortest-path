@@ -5,22 +5,23 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.Dij
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDimForbidden;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
 
 import java.util.*;
 
-public class IteratedLS {
+public class MOIteratedLS {
 
     private static final int MAX_SAMPLES = 30;
     private GraphTable graph;
     private Random rand;
     private int maxIterations = 100;
 
-    private IteratedLS() {
+    private MOIteratedLS() {
         rand = new Random();
     }
 
-    public IteratedLS(int seed) {
+    public MOIteratedLS(int seed) {
         this();
         rand.setSeed(seed);
     }
@@ -33,8 +34,7 @@ public class IteratedLS {
         this.graph = graph;
     }
 
-    public List<Node> getPath(Long start, Long end, float[] weights) {
-//        System.out.println(start + " " + end);
+    public Set<NodePathSolution> getPath(Long start, Long end, float[] weights) {
         // Dijkstra algorithm helper
         DijkstraWNDim dj = new DijkstraWNDim(RunTLMain.objectives);
         dj.setWeights(weights);
@@ -42,21 +42,43 @@ public class IteratedLS {
 
         List<Node> s0 = dj.getPath(start, end); // initial solution
         List<Node> current, best = new ArrayList<>();
-        double fCurrent, fBest;
+        float[] fCurrent;
+        Set<NodePathSolution> nonDominated = new HashSet<>();
         current = s0;
-//        System.out.println(Arrays.toString(current.toArray()));
-        fBest = fitness(current);
-        int iter = 0;
-        while (iter < maxIterations) {
-            current = mutate(current, weights); // weights is a Dijkstra param
+        fCurrent = fitness(current);
+        nonDominated.add(new NodePathSolution(fCurrent, node2arrayLong(current)));
+        int iteration = 0;
+        while (iteration < maxIterations) {
+            current = mutate(best, weights); // weights is a Dijkstra param
             fCurrent = fitness(current);
-            if (fCurrent < fBest) {
-                fBest = fCurrent;
+            if (updateNonDominated(nonDominated, fCurrent, current)) {
                 best = current;
             }
-            iter++;
+            iteration++;
         }
-        return best;
+        return nonDominated;
+    }
+
+    private boolean updateNonDominated(Set<NodePathSolution> nonDominated, float[] fitness, List<Node> values) {
+        for (NodePathSolution n : nonDominated) {
+            boolean dom = true;
+            for (int i = 0; i < fitness.length; i++) {
+                dom = dom && (fitness[i] <= n.getObjectives()[i]);
+            }
+            if (dom) {
+                nonDominated.add(new NodePathSolution(fitness, node2arrayLong(values)));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Long[] node2arrayLong(List<Node> nodes) {
+        Long[] indexes = new Long[nodes.size()];
+        for (int i = 0; i < nodes.size(); i++) {
+            indexes[i] = nodes.get(i).getId();
+        }
+        return indexes;
     }
 
     private List<Node> mutate(List<Node> s, float[] weights) {
@@ -79,7 +101,7 @@ public class IteratedLS {
         List<Long> neighboursList = new ArrayList<>(neighbours);
         Collections.shuffle(neighboursList);
         int j = 0;
-        while (j < neighboursList.size() && neighboursList.get(j) == graph.getMapping().get(s.get(point + 1).getId())) {
+        while (j < neighboursList.size() && neighboursList.get(j).equals(graph.getMapping().get(s.get(point + 1).getId()))) {
             j++;
         }
         List<Node> subPath = dj.getPath(neighboursList.get(j), graph.getMapping().get(s.get(s.size()-1).getId()));
@@ -87,9 +109,9 @@ public class IteratedLS {
         return newSolution;
     }
 
-    private double fitness(List<Node> s) {
+    private float[] fitness(List<Node> s) {
         long n1, n2;
-        double amount = 0;
+        float amount = 0;
         List<Double> samples = new ArrayList<>();
         for (int sample = 0; sample < MAX_SAMPLES; sample++) {
             double cost = 0;
@@ -99,17 +121,28 @@ public class IteratedLS {
                 long arc = graph.getAdjacencyMatrix().get(n1, n2);
                 float mu = graph.getWeightsMatrix().get(arc, 0L); // TODO Change to the final weight
                 float sigma = graph.getWeightsMatrix().get(arc, 1L); // TODO Change to the final weight
-                double tentativeTime = rand.nextGaussian() * sigma + mu;
+                float tentativeTime = (float) rand.nextGaussian() * sigma + mu;
                 // TrafficLight phase
                 TlLogic tl = graph.getTlMatrix().get(n1, n2);
-                cost += tentativeTime;
+                cost += tentativeTime; // TODO Add drive profile
                 if (tl != null) {
                     int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
                     cost += time;
                 }
             }
+            samples.add(cost);
             amount += cost;
         }
-        return amount / (double) MAX_SAMPLES;
+        float mean = amount / (float) MAX_SAMPLES;
+        return new float[]{mean, variance(samples, mean)};
+    }
+
+    private float variance(List<Double> samples, double mean) {
+        float var = 0;
+        for (Double sample : samples) {
+            var += Math.pow(sample - mean, 2f);
+        }
+        var = var / (samples.size() -1);
+        return var;
     }
 }
