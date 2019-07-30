@@ -3,6 +3,7 @@ package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.AstarMO;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDim;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.IteratedLS;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.MOIteratedLS;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblem;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblemDouble;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDifferentialEvolutionCrossover;
@@ -61,8 +62,12 @@ public class RunTLMain {
                     System.out.println("Loading graph...");
                     //graph = ProcessGraph.prepareGraph("tl_map-MOD.xml", "tl_weights.xml", "mapping-malaga.txt", "MAL");
                     //graph = ProcessGraph.prepareGraph("malaga-city.xml", "weights_time-hbefa.xml", "malaga.osm-mapping.txt", "MAL");
-                    graph = ProcessGraph.prepareGraph("malga.osm-tlgraph-CC.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
-                    ProcessGraph.getMaxConnectedComponent(graph, "malaga.osm-CC_tl_map.txt");
+
+                    //graph = ProcessGraph.prepareGraph("malga.osm-tlgraph-CC.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
+                    //ProcessGraph.getMaxConnectedComponent(graph, "malaga.osm-CC_tl_map.txt");
+                    //ProcessGraph.fixVertexIndex(graph);
+                    //graph = ProcessGraph.prepareGraph("g_filter.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
+                    graph = ProcessGraph.prepareGraph("g_CC.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
                     ProcessGraph.fixVertexIndex(graph);
                     ProcessGraph.readTlLogics(graph, "malaga_tls.json");
                     break;
@@ -73,12 +78,13 @@ public class RunTLMain {
                     graph = ProcessGraph.prepareGraph("hbefa-ny-graph.xml", "ny_weights_time-hbefa.xml", "mapping-ny.txt", "NY");
                     break;
                 case "Graph":
-                    graph = ProcessGraph.prepareGraph("malga.osm-tlgraph.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
+                    //graph = ProcessGraph.prepareGraph("malga.osm-tlgraph.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
+                    graph = ProcessGraph.prepareGraph("g_filter.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
                     ProcessGraph.printMapping(graph);
                     ProcessGraph.getConnectedComponents(graph);
                     ProcessGraph.printSCCs(graph);
-                    ProcessGraph.getMaxConnectedComponent(graph, "malaga.osm-CC_tl_map.txt");
-                    ProcessGraph.printGraph(graph, "malga.osm-tlgraph-CC.xml");
+                    ProcessGraph.getMaxConnectedComponent(graph, "g_map.txt");
+                    ProcessGraph.printGraph(graph, "g-CC.xml");
                     ProcessGraph.getConnectedComponents(graph);
                     ProcessGraph.printSCCs(graph);
                     break;
@@ -128,6 +134,10 @@ public class RunTLMain {
                     case "Iterated":
                         System.out.println("Run Iterated...");
                         rIterated(graph, points, seed[Integer.parseInt(args[3])]);
+                        break;
+                    case "MOIterated":
+                        System.out.println("Run MOIterated...");
+                        rMOIterated(graph, points, seed[Integer.parseInt(args[3])]);
                         break;
                 }
             }
@@ -194,6 +204,19 @@ public class RunTLMain {
         long timeEnd = System.currentTimeMillis();
         String wTag = "1-1-1-1";
         printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Iterated", wTag, seed);
+
+    }
+
+
+    private static void rMOIterated(GraphTable graph, Long[] points, int seed) {
+        long timeInit = System.currentTimeMillis();
+        MOIteratedLS algorithm = new MOIteratedLS(seed);
+        algorithm.setGraph(graph);
+        long timeStart = System.currentTimeMillis();
+        Set<NodePathSolution> paths = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
+        long timeEnd = System.currentTimeMillis();
+        String wTag = "1-1-1-1";
+        printSolutions(graph, paths, timeStart - timeInit, timeEnd - timeStart, "MOIterated", wTag, seed);
 
     }
 
@@ -347,6 +370,40 @@ public class RunTLMain {
             line += s.getObjectives()[3] + " ";
             line += "\n";
             out.write(line);
+
+        } catch (IOException e) {
+            // error processing code
+        } finally {
+            if (out != null) try {
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static void printSolutions(GraphTable graph, Set<NodePathSolution> paths, long t1, long t2, String algorithm, String i, int seed) {
+        BufferedWriter out = null;
+        try {
+            out = new BufferedWriter(new FileWriter("resultsFUN.ssv", true));
+            int index = 0;
+            for (NodePathSolution s : paths) {
+                String line = graph.getMapping().get(s.getVariables()[0]) + " ";
+                line += graph.getMapping().get(s.getVariables()[s.getVariables().length - 1]) + " ";
+                line += seed + " ";
+                line += t1 + " ";
+                line += t2 + " ";
+                line += algorithm + " ";
+                line += i + " ";
+                line += s.getObjectives()[0] + " ";
+                line += s.getObjectives()[1] + " ";
+//                line += s.getObjectives()[2] + " ";
+//                line += s.getObjectives()[3] + " ";
+                line += index + " ";
+                line += "\n";
+                out.write(line);
+                index ++;
+            }
 
         } catch (IOException e) {
             // error processing code

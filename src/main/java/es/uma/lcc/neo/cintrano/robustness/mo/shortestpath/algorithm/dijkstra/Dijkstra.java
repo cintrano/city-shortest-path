@@ -44,13 +44,16 @@ public class Dijkstra {
         setShortestDistance(from, 0f);
         unvisited.add(from);
 
+        System.out.println();
         while (!unvisited.isEmpty()) {
+            System.out.print(".");
             Long node = minDistance(unvisited);
-            if (node == to) return computePath(to);
+            if (node == to) {System.out.println("___________ A: ");return computePath(to);}
             unvisited.remove(node);
             visitNeighbors(node);
         }
 
+        System.out.println("___________ B: ");
         return computePath(to);
     }
 
@@ -106,7 +109,11 @@ public class Dijkstra {
         Long step = target;
         // check if a path exists
         if (predecessors.get(step) == null) {
+            System.out.print(from + " ");
+            System.out.println(to);
             if (getGraph().getAdjacencyMatrix().get(from.getId(), to.getId()) != null) {
+            //if (getGraph().getAdjacencyMatrix().get(getGraph().getMapping().get(from.getId())
+            //        , getGraph().getMapping().get(to.getId())) != null) {
                 path.add(from);
                 path.add(to);
                 return path;

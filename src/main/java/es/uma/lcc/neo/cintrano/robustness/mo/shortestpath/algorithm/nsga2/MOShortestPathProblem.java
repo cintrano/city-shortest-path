@@ -4,6 +4,7 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.Astar;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph;
 import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.problem.Problem;
@@ -16,6 +17,9 @@ import java.util.*;
  * Multi Objective Shortest Path Problem
  */
 public class MOShortestPathProblem implements Problem<NodePathSolution> {
+
+    private static final int MAX_SAMPLES = 30;
+
     private GraphTable graph;
     private Long start;
     private Long end;
@@ -78,57 +82,87 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
         return "MOShortestPathProblem";
     }
 
-    public void evaluate(NodePathSolution pathSolution) {
-        float[] fitness = new float[4];//pathSolution.getNumberOfObjectives()];
-        for (int i = 0; i < fitness.length; i++) {
-            fitness[i] = 0f;
-        }
-        //System.out.println("evaluating " + pathSolution);
-        for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
-            Long arco = graph.getAdjacencyMatrix().get(pathSolution.getVariableValue(i), pathSolution.getVariableValue(i+1));
-            //System.out.println(arco);
-            for (int j = 0; j < fitness.length; j++) {
-                fitness[j] += graph.getWeightsMatrix().get(arco, (long) j);
+    /*
+      No traffic light version
+     */
+//    public void evaluate(NodePathSolution pathSolution) {
+//        float[] fitness = new float[4];//pathSolution.getNumberOfObjectives()];
+//        for (int i = 0; i < fitness.length; i++) {
+//            fitness[i] = 0f;
+//        }
+//        for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
+//            Long arco = graph.getAdjacencyMatrix().get(pathSolution.getVariableValue(i), pathSolution.getVariableValue(i+1));
+//            for (int j = 0; j < fitness.length; j++) {
+//                fitness[j] += graph.getWeightsMatrix().get(arco, (long) j);
+//            }
+//        }
+//        for (int i = 0; i < fitness.length; i++) {//fitness.length; i++) {
+//            pathSolution.setObjective(i, fitness[i]);
+//        }
+//    }
+
+    /**
+     * Traffic light version
+     * @param pathSolution path to be evaluate
+     */
+    public void evaluate(NodePathSolution pathSolution) { // TODO AÑADIR LOS OTROS DOS OBJETIVOS
+        long n1, n2;
+        float amount = 0;
+        List<Double> samples = new ArrayList<>();
+        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+            double cost = 0;
+            for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
+                n1 = pathSolution.getVariableValue(i);
+                n2 = pathSolution.getVariableValue(i+1);
+                Long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                float mu = graph.getWeightsMatrix().get(arc, 0L); // TODO Change to the final weight
+                float sigma = graph.getWeightsMatrix().get(arc, 1L); // TODO Change to the final weight
+                float tentativeTime = (float) randNormal(mu, sigma);
+                System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
+                // TrafficLight phase
+                TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                cost += tentativeTime; // TODO Add drive profile
+                if (tl != null) {
+                    int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
+                    cost += time;
+                }
             }
-            /*
-            fitness[1] = 0f;
-            fitness[2] = 0f;
-            fitness[3] = 0f;
-            /*
-            fitness[0] += graph.getWeightsMatrix().row(arco).get(0L);
-            fitness[1] += graph.getWeightsMatrix().row(arco).get(1L);
-            fitness[2] += graph.getWeightsMatrix().row(arco).get(2L);
-            fitness[3] += graph.getWeightsMatrix().row(arco).get(3L);
-            */
-            /*
-            weights = graph.getWeights(pathSolution.getVariableValue(i), pathSolution.getVariableValue(i+1));
-            for (Weight weight: weights) {
-                fitness[objectivesTags.get(weight.getType())] += weight.getValue();
+                samples.add(cost);
+                amount += cost;
             }
-            */
-        }
-        /*
-        fitness[0] = (fitness[0] * 0.5f) + (fitness[1] * 0.5f);
-        List<Double> lista = new ArrayList<Double>();
-        for (Object n : ((SteadyStateGeneticAlgorithm) algorithm).getPopulation()) {
-            lista.add(((NodePathSolution) n).getObjective(0));
-        }
-        Collections.sort(lista);
-        System.out.println(lista.get(4));
-        */
-        // Penalty
-        // TODO: Dijkstra penalty
+        float mean = amount / (float) MAX_SAMPLES;
+        pathSolution.setObjective(0, mean);
+        pathSolution.setObjective(1, variance(samples, mean));
+    }
 
-
-        // Set fitness in the individual
-        //System.out.print("i--> ");
-        for (int i = 0; i < fitness.length; i++) {//fitness.length; i++) {
-            pathSolution.setObjective(i, fitness[i]);
-        //    System.out.print(fitness[i] + " ");
+    private float variance(List<Double> samples, double mean) {
+        float var = 0;
+        for (Double sample : samples) {
+            var += Math.pow(sample - mean, 2f);
         }
+        var = var / (samples.size() -1);
+        return var;
+    }
 
-        //((SteadyStateGeneticAlgorithm) algorithm).getPopulation();
-        //System.out.println();
+    /**
+     * Use the polar form of the Box-Muller transformation to obtain
+     * a pseudo random number from a Gaussian distribution
+     * Code taken from Maurice Clerc's implementation
+     *
+     * @param mean Mean
+     * @param standardDeviation Sigma
+     * @return A pseudo random number
+     */
+    private double randNormal(double mean, double standardDeviation) {
+        double x1, x2, w, y1;
+        do {
+            x1 = 2.0 * JMetalRandom.getInstance().nextDouble() - 1.0;
+            x2 = 2.0 * JMetalRandom.getInstance().nextDouble() - 1.0;
+            w = x1 * x1 + x2 * x2;
+        } while (w >= 1.0);
+        w = Math.sqrt((-2.0 * Math.log(w)) / w);
+        y1 = x1 * w * (standardDeviation + mean);
+        return y1;
     }
 
     public NodePathSolution createSolution() {

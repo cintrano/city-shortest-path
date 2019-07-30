@@ -45,6 +45,7 @@ public class MOIteratedLS {
         float[] fCurrent;
         Set<NodePathSolution> nonDominated = new HashSet<>();
         current = s0;
+        best = s0;
         fCurrent = fitness(current);
         nonDominated.add(new NodePathSolution(fCurrent, node2arrayLong(current)));
         int iteration = 0;
@@ -110,6 +111,7 @@ public class MOIteratedLS {
     }
 
     private float[] fitness(List<Node> s) {
+        int tlcount = 0;
         long n1, n2;
         float amount = 0;
         List<Double> samples = new ArrayList<>();
@@ -126,6 +128,7 @@ public class MOIteratedLS {
                 TlLogic tl = graph.getTlMatrix().get(n1, n2);
                 cost += tentativeTime; // TODO Add drive profile
                 if (tl != null) {
+                    tlcount++;
                     int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
                     cost += time;
                 }
@@ -134,6 +137,7 @@ public class MOIteratedLS {
             amount += cost;
         }
         float mean = amount / (float) MAX_SAMPLES;
+        System.out.println("F " + mean + " " + variance(samples, mean) + " " + tlcount);
         return new float[]{mean, variance(samples, mean)};
     }
 

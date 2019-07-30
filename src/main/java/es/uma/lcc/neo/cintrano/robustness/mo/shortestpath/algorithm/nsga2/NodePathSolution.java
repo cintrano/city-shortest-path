@@ -1,7 +1,6 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2;
 
 import org.uma.jmetal.solution.Solution;
-import org.uma.jmetal.util.solutionattribute.SolutionAttribute;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,13 +42,6 @@ public class NodePathSolution implements Solution<Long> {
     }
 
     public String getVariableValueString(int i) {
-        /*
-        System.out.print("Node " + variables.length +" " + i + " --> ");
-        for (Long l : variables) {
-            System.out.print(" " + l);
-        }
-        System.out.println();
-        */
         return variables[i].toString();
     }
 
@@ -75,37 +67,7 @@ public class NodePathSolution implements Solution<Long> {
         return null;
     }
 
-    private Map<Object, Object> attributes = new HashMap<Object, Object>();
-/*
-    public void setAttribute(Object id, Object value) {
-        attributes.put(id, value);
-    }
-
-    public Object getAttribute(Object id) {
-        return attributes.get(id);
-    }
-    */
-/*
-    public void setAttribute(Object o, Object o1) {
-
-    }
-
-    public Object getAttribute(Object o) {
-        return null;
-    }
-
-    public Integer getAttribute(NodePathSolution solution) {
-        return solution.getAttribute(getAttributeID());
-    }
-
-    public void setAttribute(NodePathSolution solution, Object value) {
-        solution.setAttribute(getAttributeID(), value);
-    }
-
-    public Object getAttributeID() {
-        return this.getClass() ;
-    }
-*/
+    private Map<Object, Object> attributes = new HashMap<>();
 
     public Integer getAttribute(NodePathSolution solution) {
         return (Integer) solution.getAttribute(getAttributeID());
@@ -125,17 +87,17 @@ public class NodePathSolution implements Solution<Long> {
 
     @Override
     public String toString() {
-        String s = "[";
+        StringBuilder s = new StringBuilder("[");
         for (Long var : variables) {
-            s += var + ",";
+            s.append(var).append(",");
         }
-        s += "] ";
+        s.append("] ");
 
         for (Double var : objectives) {
-            s += var + ",";
+            s.append(var).append(",");
         }
 
-        return s;
+        return s.toString();
     }
 
     public double[] getObjectives() {

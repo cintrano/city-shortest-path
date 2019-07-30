@@ -88,6 +88,7 @@ public class IteratedLS {
     }
 
     private double fitness(List<Node> s) {
+        int tlcount = 0;
         long n1, n2;
         double amount = 0;
         List<Double> samples = new ArrayList<>();
@@ -104,12 +105,14 @@ public class IteratedLS {
                 TlLogic tl = graph.getTlMatrix().get(n1, n2);
                 cost += tentativeTime;
                 if (tl != null) {
+                    tlcount++;
                     int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
                     cost += time;
                 }
             }
             amount += cost;
         }
+        System.out.println("F " + amount / (double) MAX_SAMPLES + " " + tlcount);
         return amount / (double) MAX_SAMPLES;
     }
 }

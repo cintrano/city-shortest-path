@@ -4,6 +4,7 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.Astar;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph;
 import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.problem.DoubleProblem;
@@ -23,6 +24,9 @@ import java.util.Stack;
  * Multi Objective Shortest Path Problem
  */
 public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, DoubleProblem {
+
+    private static final int MAX_SAMPLES = 30;
+
     private GraphTable graph;
     private Long start;
     private Long end;
@@ -85,71 +89,101 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         return "MOShortestPathProblem";
     }
 
+    /*
+      No traffic light version
+     */
+//    public void evaluate(DoubleSolution pathSolution) {
+//        float[] fitness = new float[4];//pathSolution.getNumberOfObjectives()];
+//        for (int i = 0; i < fitness.length; i++) {
+//            fitness[i] = 0f;
+//        }
+//        boolean continuar = true;
+//        for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
+//            if ((pathSolution.getVariableValue(i)).longValue() == end) {
+//                continuar = false;
+//            }
+//            if (continuar){
+//                Long arco = graph.getAdjacencyMatrix().get((pathSolution.getVariableValue(i)).longValue(), (pathSolution.getVariableValue(i + 1)).longValue());
+//                for (int j = 0; j < fitness.length; j++) {
+//                    fitness[j] += graph.getWeightsMatrix().get(arco, (long) j);
+//                }
+//            }
+//        }
+//        for (int i = 0; i < fitness.length; i++) {//fitness.length; i++) {
+//            pathSolution.setObjective(i, fitness[i]);
+//        }
+//    }
+
+    /**
+     * Traffic light version
+     * @param pathSolution path to be evaluate
+     */
     public void evaluate(DoubleSolution pathSolution) {
-        float[] fitness = new float[4];//pathSolution.getNumberOfObjectives()];
-        for (int i = 0; i < fitness.length; i++) {
-            fitness[i] = 0f;
-        }
+        long n1, n2;
+        float amount = 0;
+        List<Double> samples = new ArrayList<>();
+        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+            double cost = 0;
         boolean continuar = true;
-        //System.out.println("evaluating " + ((MyDoubleSolution) pathSolution));
         for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
-            //System.out.println((pathSolution.getVariableValue(i)) + " " + (pathSolution.getVariableValue(i+1)));
             if ((pathSolution.getVariableValue(i)).longValue() == end) {
-                //System.out.println("<--------------");
                 continuar = false;
             }
             if (continuar){
-                //System.out.println((pathSolution.getVariableValue(i)).longValue() + " " + (pathSolution.getVariableValue(i+1)).longValue());
-                Long arco = graph.getAdjacencyMatrix().get((pathSolution.getVariableValue(i)).longValue(), (pathSolution.getVariableValue(i + 1)).longValue());
-                //System.out.println(arco);
-                for (int j = 0; j < fitness.length; j++) {
-                    //  System.out.println("...");
-                    //System.out.println(arco);
-                    //System.out.println(j);
-                    //System.out.println(graph.getWeightsMatrix().get(arco, (long) j));
-                    fitness[j] += graph.getWeightsMatrix().get(arco, (long) j);
+                n1 = pathSolution.getVariableValue(i).longValue();
+                n2 = (pathSolution.getVariableValue(i + 1)).longValue();
+                Long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                float mu = graph.getWeightsMatrix().get(arc, 0L); // TODO Change to the final weight
+                float sigma = graph.getWeightsMatrix().get(arc, 1L); // TODO Change to the final weight
+                float tentativeTime = (float) randNormal(mu, sigma);
+                System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
+                // TrafficLight phase
+                TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                cost += tentativeTime; // TODO Add drive profile
+                if (tl != null) {
+                    int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
+                    cost += time;
                 }
             }
-            /*
-            fitness[1] = 0f;
-            fitness[2] = 0f;
-            fitness[3] = 0f;
-            /*
-            fitness[0] += graph.getWeightsMatrix().row(arco).get(0L);
-            fitness[1] += graph.getWeightsMatrix().row(arco).get(1L);
-            fitness[2] += graph.getWeightsMatrix().row(arco).get(2L);
-            fitness[3] += graph.getWeightsMatrix().row(arco).get(3L);
-            */
-            /*
-            weights = graph.getWeights(pathSolution.getVariableValue(i), pathSolution.getVariableValue(i+1));
-            for (Weight weight: weights) {
-                fitness[objectivesTags.get(weight.getType())] += weight.getValue();
-            }
-            */
         }
-        /*
-        fitness[0] = (fitness[0] * 0.5f) + (fitness[1] * 0.5f);
-        List<Double> lista = new ArrayList<Double>();
-        for (Object n : ((SteadyStateGeneticAlgorithm) algorithm).getPopulation()) {
-            lista.add(((NodePathSolution) n).getObjective(0));
+            samples.add(cost);
+            amount += cost;
         }
-        Collections.sort(lista);
-        System.out.println(lista.get(4));
-        */
-        // Penalty
-        // TODO: Dijkstra penalty
-
-
-        // Set fitness in the individual
-        //System.out.print("i--> ");
-        for (int i = 0; i < fitness.length; i++) {//fitness.length; i++) {
-            pathSolution.setObjective(i, fitness[i]);
-        //    System.out.print(fitness[i] + " ");
-        }
-
-        //((SteadyStateGeneticAlgorithm) algorithm).getPopulation();
-        //System.out.println();
+        float mean = amount / (float) MAX_SAMPLES;
+        pathSolution.setObjective(0, mean);
+        pathSolution.setObjective(1, variance(samples, mean));
     }
+
+    private float variance(List<Double> samples, double mean) {
+        float var = 0;
+        for (Double sample : samples) {
+            var += Math.pow(sample - mean, 2f);
+        }
+        var = var / (samples.size() -1);
+        return var;
+    }
+
+    /**
+     *  Use the polar form of the Box-Muller transformation to obtain
+     * a pseudo random number from a Gaussian distribution
+     * Code taken from Maurice Clerc's implementation
+     *
+     * @param mean Mean
+     * @param standardDeviation Sigma
+     * @return A pseudo random number
+     */
+    private double randNormal(double mean, double standardDeviation) {
+        double x1, x2, w, y1;
+        do {
+            x1 = 2.0 * JMetalRandom.getInstance().nextDouble() - 1.0;
+            x2 = 2.0 * JMetalRandom.getInstance().nextDouble() - 1.0;
+            w = x1 * x1 + x2 * x2;
+        } while (w >= 1.0);
+        w = Math.sqrt((-2.0 * Math.log(w)) / w);
+        y1 = x1 * w * (standardDeviation + mean);
+        return y1;
+    }
+
 
     public DoubleSolution createSolution() {
         JMetalRandom randomGenerator = JMetalRandom.getInstance();
