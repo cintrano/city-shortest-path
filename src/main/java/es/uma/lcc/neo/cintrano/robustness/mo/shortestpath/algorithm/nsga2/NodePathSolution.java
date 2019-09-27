@@ -15,10 +15,12 @@ public class NodePathSolution implements Solution<Long> {
 //public class NodePathSolution implements SolutionAttribute<NodePathSolution, V> {
     private double[] objectives;
     private Long[] variables;
+    protected Map<Object, Object> attributes ;
 
     public NodePathSolution(double[] objectives, Long[] variables) {
         this.objectives = objectives;
         this.variables = variables;
+        attributes = new HashMap<Object, Object>() ;
     }
 
     public void setObjective(int i, double v) {
@@ -58,24 +60,33 @@ public class NodePathSolution implements Solution<Long> {
     }
 
     @Override
-    public void setAttribute(Object o, Object o1) {
-
+    public void setAttribute(Object id, Object value) {
+        attributes.put(id, value) ;
     }
 
     @Override
-    public Object getAttribute(Object o) {
-        return null;
+    public Object getAttribute(Object id) {
+        return attributes.get(id) ;
     }
 
-    private Map<Object, Object> attributes = new HashMap<>();
-
-    public Integer getAttribute(NodePathSolution solution) {
-        return (Integer) solution.getAttribute(getAttributeID());
+    public Map<Object, Object> getAttributes() {
+        return attributes;
     }
 
-    public void setAttribute(NodePathSolution solution, Integer value) {
-        solution.setAttribute(getAttributeID(), value);
-    }
+//    @Override
+//    public Object getAttribute(Object o) {
+//        return getAttribute((NodePathSolution) o);
+//    }
+//
+//    private Map<Object, Object> attributes = new HashMap<>();
+//
+//    public Integer getAttribute(NodePathSolution solution) {
+//        return (Integer) solution.getAttribute(getAttributeID());
+//    }
+//
+//    public void setAttribute(NodePathSolution solution, Integer value) {
+//        solution.setAttribute(getAttributeID(), value);
+//    }
 
     public Object getAttributeID() {
         return this.getClass() ;
@@ -83,6 +94,14 @@ public class NodePathSolution implements Solution<Long> {
 
     public Long[] getVariables() {
         return variables;
+    }
+
+    public Double[] getVariablesDouble() {
+        Double[] tmp = new Double[variables.length];
+        for (int i = 0; i < variables.length; i++) {
+            tmp[i] = new Double(variables[i]);
+        }
+        return tmp;
     }
 
     @Override

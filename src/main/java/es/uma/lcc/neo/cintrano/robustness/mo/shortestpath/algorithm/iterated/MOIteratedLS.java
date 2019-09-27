@@ -1,5 +1,6 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated;
 
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.MyUtility;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.RunTLMain;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDim;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDimForbidden;
@@ -12,10 +13,13 @@ import java.util.*;
 
 public class MOIteratedLS {
 
-    private static final int MAX_SAMPLES = 30;
+    private static int MAX_SAMPLES = 30;
     private GraphTable graph;
     private Random rand;
     private int maxIterations = 100;
+    private boolean robustFlag = true;
+    private boolean TLFlag = true;
+    private int numObjectives = 4;
 
     private MOIteratedLS() {
         rand = new Random();
@@ -58,6 +62,15 @@ public class MOIteratedLS {
             iteration++;
         }
         return nonDominated;
+    }
+
+    public void setRobustFlag(boolean robustFlag) {
+        this.robustFlag = robustFlag;
+        if (!robustFlag) MAX_SAMPLES = 1;
+    }
+
+    public void setTLFlag(boolean TLFlag) {
+        this.TLFlag = TLFlag;
     }
 
     private boolean updateNonDominated(Set<NodePathSolution> nonDominated, float[] fitness, List<Node> values) {
@@ -110,43 +123,43 @@ public class MOIteratedLS {
         return newSolution;
     }
 
+    // Fitness robust mono-objective
     private float[] fitness(List<Node> s) {
-        int tlcount = 0;
-        long n1, n2;
-        float amount = 0;
-        List<Double> samples = new ArrayList<>();
-        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
-            double cost = 0;
-            for (int i = 0; i < s.size() - 1; i++) {
-                n1 = graph.getMapping().get(s.get(i).getId());
-                n2 = graph.getMapping().get(s.get(i+1).getId());
-                long arc = graph.getAdjacencyMatrix().get(n1, n2);
-                float mu = graph.getWeightsMatrix().get(arc, 0L); // TODO Change to the final weight
-                float sigma = graph.getWeightsMatrix().get(arc, 1L); // TODO Change to the final weight
-                float tentativeTime = (float) rand.nextGaussian() * sigma + mu;
-                // TrafficLight phase
-                TlLogic tl = graph.getTlMatrix().get(n1, n2);
-                cost += tentativeTime; // TODO Add drive profile
-                if (tl != null) {
-                    tlcount++;
-                    int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
-                    cost += time;
+        float[] fit = new float[numObjectives];
+        for (int objective = 0; objective < numObjectives; objective += 2) {
+            int tlCount = 0;
+            long n1, n2;
+            float amount = 0;
+            List<Double> samples = new ArrayList<>();
+            for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+                double cost = 0;
+                for (int i = 0; i < s.size() - 1; i++) {
+                    n1 = graph.getMapping().get(s.get(i).getId());
+                    n2 = graph.getMapping().get(s.get(i + 1).getId());
+                    long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                    float mu = graph.getWeightsMatrix().get(arc, (long) objective);
+                    float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1);
+                    float tentativeTime = (float) rand.nextGaussian() * sigma + mu;
+                    cost += tentativeTime; // TODO Add drive profile
+                    // TrafficLight phase
+                    if (TLFlag) {
+                        TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                        if (tl != null) {
+                            tlCount++;
+                            int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
+                            cost += time;
+                        }
+                    }
                 }
+                samples.add(cost);
+                amount += cost;
             }
-            samples.add(cost);
-            amount += cost;
+            float mean = amount / (float) MAX_SAMPLES;
+            float variance = MyUtility.variance(samples, mean);
+            System.out.println("F " + mean + " " + variance + " " + tlCount);
+            fit[objective] = mean;
+            fit[objective+1] = variance;
         }
-        float mean = amount / (float) MAX_SAMPLES;
-        System.out.println("F " + mean + " " + variance(samples, mean) + " " + tlcount);
-        return new float[]{mean, variance(samples, mean)};
-    }
-
-    private float variance(List<Double> samples, double mean) {
-        float var = 0;
-        for (Double sample : samples) {
-            var += Math.pow(sample - mean, 2f);
-        }
-        var = var / (samples.size() -1);
-        return var;
+        return fit;
     }
 }

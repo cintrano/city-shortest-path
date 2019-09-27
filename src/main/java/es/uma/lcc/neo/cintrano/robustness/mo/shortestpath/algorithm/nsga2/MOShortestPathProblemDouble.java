@@ -1,5 +1,6 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2;
 
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.MyUtility;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.Astar;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
@@ -10,8 +11,6 @@ import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.problem.DoubleProblem;
 import org.uma.jmetal.problem.Problem;
 import org.uma.jmetal.solution.DoubleSolution;
-import org.uma.jmetal.solution.Solution;
-import org.uma.jmetal.solution.impl.DefaultDoubleSolution;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 
 import java.util.ArrayList;
@@ -25,7 +24,7 @@ import java.util.Stack;
  */
 public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, DoubleProblem {
 
-    private static final int MAX_SAMPLES = 30;
+    private static int MAX_SAMPLES = 30;
 
     private GraphTable graph;
     private Long start;
@@ -34,6 +33,8 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
     private int numObjectives = 4;
     private final int numConstraints = 0;
     private Map<String, Integer> objectivesTags; // <tag, fitness array id>
+    private boolean robustFlag = true;
+    private boolean TLFlag = true;
 
     private Algorithm<DoubleSolution> algorithm;
     public void setAlgorithm(Algorithm<DoubleSolution> algorithm) {
@@ -63,6 +64,13 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         this.end = end;
         this.objectivesTags = objectivesTags;
     }
+    public MOShortestPathProblemDouble(GraphTable graph, Long start, Long end, int numVariables, boolean robustFlag, boolean TLFlag) {
+        this(graph, start, end, numVariables);
+        this.robustFlag = robustFlag;
+        this.TLFlag = TLFlag;
+        if (!robustFlag) MAX_SAMPLES = 1;
+    }
+
     public MOShortestPathProblemDouble(GraphTable graph, Long start, Long end, int numVariables) {
         this(graph, numVariables);
         this.start = start;
@@ -89,78 +97,52 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         return "MOShortestPathProblem";
     }
 
-    /*
-      No traffic light version
-     */
-//    public void evaluate(DoubleSolution pathSolution) {
-//        float[] fitness = new float[4];//pathSolution.getNumberOfObjectives()];
-//        for (int i = 0; i < fitness.length; i++) {
-//            fitness[i] = 0f;
-//        }
-//        boolean continuar = true;
-//        for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
-//            if ((pathSolution.getVariableValue(i)).longValue() == end) {
-//                continuar = false;
-//            }
-//            if (continuar){
-//                Long arco = graph.getAdjacencyMatrix().get((pathSolution.getVariableValue(i)).longValue(), (pathSolution.getVariableValue(i + 1)).longValue());
-//                for (int j = 0; j < fitness.length; j++) {
-//                    fitness[j] += graph.getWeightsMatrix().get(arco, (long) j);
-//                }
-//            }
-//        }
-//        for (int i = 0; i < fitness.length; i++) {//fitness.length; i++) {
-//            pathSolution.setObjective(i, fitness[i]);
-//        }
-//    }
-
     /**
      * Traffic light version
      * @param pathSolution path to be evaluate
      */
     public void evaluate(DoubleSolution pathSolution) {
-        long n1, n2;
-        float amount = 0;
-        List<Double> samples = new ArrayList<>();
-        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
-            double cost = 0;
-        boolean continuar = true;
-        for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
-            if ((pathSolution.getVariableValue(i)).longValue() == end) {
-                continuar = false;
-            }
-            if (continuar){
-                n1 = pathSolution.getVariableValue(i).longValue();
-                n2 = (pathSolution.getVariableValue(i + 1)).longValue();
-                Long arc = graph.getAdjacencyMatrix().get(n1, n2);
-                float mu = graph.getWeightsMatrix().get(arc, 0L); // TODO Change to the final weight
-                float sigma = graph.getWeightsMatrix().get(arc, 1L); // TODO Change to the final weight
-                float tentativeTime = (float) randNormal(mu, sigma);
-                System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
-                // TrafficLight phase
-                TlLogic tl = graph.getTlMatrix().get(n1, n2);
-                cost += tentativeTime; // TODO Add drive profile
-                if (tl != null) {
-                    int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
-                    cost += time;
+        for (int objective = 0; objective < numObjectives; objective += 2) {
+            int tlCount = 0;
+            long n1, n2;
+            float amount = 0;
+            List<Double> samples = new ArrayList<>();
+            for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+                double cost = 0;
+                boolean continuar = true;
+                for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
+                    if ((pathSolution.getVariableValue(i)).longValue() == end) {
+                        continuar = false;
+                    }
+                    if (continuar) {
+                        n1 = pathSolution.getVariableValue(i).longValue();
+                        n2 = (pathSolution.getVariableValue(i + 1)).longValue();
+                        Long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                        float mu = graph.getWeightsMatrix().get(arc, (long) objective);
+                        float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1L);
+                        float tentativeTime = (float) randNormal(mu, sigma);
+                        System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
+                        cost += tentativeTime; // TODO Add drive profile
+                        if (TLFlag) {
+                            // TrafficLight phase
+                            TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                            if (tl != null) {
+                                tlCount++;
+                                int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
+                                cost += time;
+                            }
+                        }
+                    }
                 }
+                samples.add(cost);
+                amount += cost;
             }
+            float mean = amount / (float) MAX_SAMPLES;
+            float variance = MyUtility.variance(samples, mean);
+            System.out.println("F " + mean + " " + variance + " " + tlCount);
+            pathSolution.setObjective(objective, mean);
+            pathSolution.setObjective(objective + 1, variance);
         }
-            samples.add(cost);
-            amount += cost;
-        }
-        float mean = amount / (float) MAX_SAMPLES;
-        pathSolution.setObjective(0, mean);
-        pathSolution.setObjective(1, variance(samples, mean));
-    }
-
-    private float variance(List<Double> samples, double mean) {
-        float var = 0;
-        for (Double sample : samples) {
-            var += Math.pow(sample - mean, 2f);
-        }
-        var = var / (samples.size() -1);
-        return var;
     }
 
     /**
