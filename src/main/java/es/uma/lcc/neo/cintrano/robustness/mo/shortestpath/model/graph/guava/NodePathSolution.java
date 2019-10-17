@@ -11,6 +11,7 @@ import java.util.List;
 public class NodePathSolution {
     private float[] objectives;
     private Long[] variables;
+    private int tl = 0;
 
     public NodePathSolution(float[] objectives, Long[] variables) {
         this.objectives = objectives;
@@ -69,5 +70,13 @@ public class NodePathSolution {
     @Override
     public int hashCode() {
         return Arrays.hashCode(objectives);
+    }
+
+    public int getTl() {
+        return tl;
+    }
+
+    public void setTl(int tl) {
+        this.tl = tl;
     }
 }

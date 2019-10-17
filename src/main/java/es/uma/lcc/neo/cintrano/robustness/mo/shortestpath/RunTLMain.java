@@ -20,10 +20,6 @@ import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEAD;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEADSTM;
 import org.uma.jmetal.algorithm.multiobjective.nsgaii.NSGAII;
-import org.uma.jmetal.algorithm.multiobjective.nsgaii.NSGAIIMeasures;
-import org.uma.jmetal.measure.MeasureListener;
-import org.uma.jmetal.measure.MeasureManager;
-import org.uma.jmetal.measure.PushMeasure;
 import org.uma.jmetal.operator.CrossoverOperator;
 import org.uma.jmetal.operator.MutationOperator;
 import org.uma.jmetal.operator.impl.selection.BinaryTournamentSelection;
@@ -61,7 +57,21 @@ public class RunTLMain {
         }
         System.out.println();
 
-        if (args.length >= 3) {
+        if (args[0].equals("Mapping")) {
+            GraphTable graph = ProcessGraph.parserFile(args[1]);
+            assert graph != null;
+            ProcessGraph.printMapping(graph);
+        } else if (args[0].equals("Reevaluate")) {
+            String output_file = args[1];
+            String path = args[2];
+
+            GraphTable graph = ProcessGraph.prepareGraph("g_CC.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
+            ProcessGraph.fixVertexIndex(graph);
+            ProcessGraph.readTlLogics(graph, "malaga_tls.json");
+
+
+            reevaluateSolutions(output_file, path, graph);
+        } else if (args.length >= 3) {
             GraphTable graph = null;
             // Map
             switch (args[0]) {
@@ -102,8 +112,6 @@ public class RunTLMain {
             // Algorithm
             if (points != null) {
                 System.out.println(points[0] + " " + points[1]);
-                //boolean robust = Boolean.parseBoolean(args[4]);
-                //boolean tlOption = Boolean.parseBoolean(args[5]);
                 boolean robust = args[4].equals("Robust");
                 boolean tlOption = args[5].equals("TL");
                 System.out.println("FLAGs:: Robust=" + robust + ", TL=" + tlOption);
@@ -147,13 +155,57 @@ public class RunTLMain {
                         break;
                 }
             }
-        } else if (args[0].equals("Mapping")) {
-            GraphTable graph = ProcessGraph.parserFile(args[1]);
-            assert graph != null;
-            ProcessGraph.printMapping(graph);
+        } else {
+            System.out.print("ERROR:: Incorrect parameters: " + Arrays.toString(args));
         }
 
         System.out.println("=== END EXPERIMENTS ===");
+    }
+
+    private static void reevaluateSolutions(String output_file, String path, GraphTable graph) {
+        final String FILE_NAME = "resultsVAR.ssv";
+        File file = new File(path);
+        String[] directories = file.list((current, name) -> new File(current, name).isDirectory());
+        System.out.println(Arrays.toString(directories));
+        assert directories != null;
+        for (String directory : directories) {
+            String[] tokens = directory.split(".");
+            BufferedReader br;
+            FileWriter fw;
+            float[] fitness;
+            try {
+                br = new BufferedReader(new FileReader(path + directory + "/" + FILE_NAME));
+                fw = new FileWriter(output_file);
+
+                String outLine;
+                String line = br.readLine();
+                while (line != null) {
+                    fitness = reevaluateSolution(line, graph);
+                    // TODO print line as output
+                    outLine = "Reeval" + "\t";
+                    outLine += tokens[0] + "\t" + (Integer.parseInt(tokens[3])%30) + "\t";
+                    outLine += tokens[1] + "\t" + tokens[2] + "\t";
+                    outLine += tokens[1] + "\t" + tokens[2] + "\t"; // Dummy time
+
+                    fw.write(outLine);
+                    line = br.readLine();
+                }
+
+                br.close();
+                fw.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static float[] reevaluateSolution(String line, GraphTable graph) {
+        String[] tokens = line.split(" ");
+        String[] solString = Arrays.copyOfRange(tokens, 7, tokens.length - 1);
+        long[] sol = Arrays.stream(solString).mapToLong(Long::parseLong).toArray();
+        Random rand = new Random();
+        rand.setSeed(13);
+        return MyUtility.fitnessTL(graph, sol, 4, 30, rand);
     }
 
 
@@ -167,7 +219,6 @@ public class RunTLMain {
         String wTag = "1-1-1-1";
         MyUtility.printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Iterated", wTag, seed);
     }
-
 
     private static void rMOIterated(GraphTable graph, Long[] points, int seed, boolean robust, boolean tlOption) {
         long timeInit = System.currentTimeMillis();
@@ -271,7 +322,6 @@ public class RunTLMain {
     }
 
 
-
     private static Map<Long, List<double[]>> fitnessAll = new HashMap<>();
     private static Map<Long, List<Double[]>> solutions = new HashMap<>();
     private static void rNSGAII(GraphTable graph, Long[] points, long seed, boolean robust, boolean tlOption) {
@@ -350,7 +400,7 @@ public class RunTLMain {
             JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
 
             fillLog(population, 111L);
-            printStaticFinalLog(algorithm, computingTime, label);
+            printStaticFinalLog(algorithm, computingTime);
 
             printFinalSolutionSet(population);
 
@@ -403,6 +453,7 @@ public class RunTLMain {
 //            printFinalSolutionSet(population);
 //        }
     }
+
     private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population, Object o) {
         List<double[]> f = new ArrayList<>();
         List<Double[]> v = new ArrayList<>();
@@ -427,17 +478,18 @@ public class RunTLMain {
         solutions.put((Long) o, v);
     }
 
-    static void printStaticFinalLog(Algorithm<List<NodePathSolution>> algorithm, long time, String label) {
+    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>> algorithm, long time, String label) {
         Writer writer = null;
         String filename = "result_F.csv";
         try {
             writer = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream(filename), StandardCharsets.UTF_8));
-            int i;
+            int i, tls;
             for (Long iteration: fitnessAll.keySet()){
                 i = 0;
                 for (double[] listA : fitnessAll.get(iteration)) {
-                    writer.write(iteration + " " + i + " ");
+                    tls = (Integer) algorithm.getResult().get(i).getAttribute("tl");
+                    writer.write(iteration + " " + i + " "+ time + " " + tls + " ");
                     for (double e : listA) {
                         writer.write(e + " ");
                     }
@@ -477,8 +529,58 @@ public class RunTLMain {
         } finally {
             try {writer.close();} catch (Exception ex) {ex.printStackTrace();}
         }
-
-
     }
 
+    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution>> algorithm, long time) {
+        Writer writer = null;
+        String filename = "result_F.csv";
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filename), StandardCharsets.UTF_8));
+            int i, tls;
+            for (Long iteration: fitnessAll.keySet()){
+                i = 0;
+                for (double[] listA : fitnessAll.get(iteration)) {
+                    tls = (Integer) algorithm.getResult().get(i).getAttribute("tl");
+                    writer.write(iteration + " " + i + " "+ time + " " + tls + " ");
+                    for (double e : listA) {
+                        writer.write(e + " ");
+                    }
+                    i++;
+                    writer.write("\n");
+                }
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // report
+        } finally {
+            try {
+                assert writer != null;
+                writer.close();} catch (Exception ex) {ex.printStackTrace();}
+        }
+        filename = "result_V.csv";
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filename), StandardCharsets.UTF_8));
+            int i;
+            for (Long iteration: solutions.keySet()){
+                i = 0;
+                for (Double[] listA : solutions.get(iteration)) {
+                    writer.write(iteration + " " + i + " ");
+                    for (Double e : listA) {
+                        writer.write(e + " ");
+                    }
+                    i++;
+                    writer.write("\n");
+                }
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // report
+        } finally {
+            try {writer.close();} catch (Exception ex) {ex.printStackTrace();}
+        }
+    }
 }

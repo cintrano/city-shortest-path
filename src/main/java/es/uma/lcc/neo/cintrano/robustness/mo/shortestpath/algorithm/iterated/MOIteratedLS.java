@@ -51,7 +51,9 @@ public class MOIteratedLS {
         current = s0;
         best = s0;
         fCurrent = fitness(current);
-        nonDominated.add(new NodePathSolution(fCurrent, node2arrayLong(current)));
+        NodePathSolution nps = new NodePathSolution(Arrays.copyOfRange(fCurrent, 0, fCurrent.length - 1), node2arrayLong(current));
+        nps.setTl((int) fCurrent[fCurrent.length-1]);
+        nonDominated.add(nps);
         int iteration = 0;
         while (iteration < maxIterations) {
             current = mutate(best, weights); // weights is a Dijkstra param
@@ -76,11 +78,13 @@ public class MOIteratedLS {
     private boolean updateNonDominated(Set<NodePathSolution> nonDominated, float[] fitness, List<Node> values) {
         for (NodePathSolution n : nonDominated) {
             boolean dom = true;
-            for (int i = 0; i < fitness.length; i++) {
+            for (int i = 0; i < fitness.length - 1; i++) {
                 dom = dom && (fitness[i] <= n.getObjectives()[i]);
             }
             if (dom) {
-                nonDominated.add(new NodePathSolution(fitness, node2arrayLong(values)));
+                NodePathSolution nps = new NodePathSolution(Arrays.copyOfRange(fitness, 0, fitness.length - 1), node2arrayLong(values));
+                nps.setTl((int) fitness[fitness.length-1]);
+                nonDominated.add(nps);
                 return true;
             }
         }
@@ -124,12 +128,13 @@ public class MOIteratedLS {
     }
 
     // Fitness robust mono-objective
-    private float[] fitness(List<Node> s) {
-        float[] fit = new float[numObjectives];
-        for (int objective = 0; objective < numObjectives; objective += 2) {
-            int tlCount = 0;
+    private float[] fitnessAnterior(List<Node> s) {
+        float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
+        int tlCount = 0;
+        for (int objective = 0; objective < numObjectives; objective += 2) { // TODO
             long n1, n2;
             float amount = 0;
+
             List<Double> samples = new ArrayList<>();
             for (int sample = 0; sample < MAX_SAMPLES; sample++) {
                 double cost = 0;
@@ -137,9 +142,9 @@ public class MOIteratedLS {
                     n1 = graph.getMapping().get(s.get(i).getId());
                     n2 = graph.getMapping().get(s.get(i + 1).getId());
                     long arc = graph.getAdjacencyMatrix().get(n1, n2);
-                    float mu = graph.getWeightsMatrix().get(arc, (long) objective);
-                    float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1);
-                    float tentativeTime = (float) rand.nextGaussian() * sigma + mu;
+                    float mu = graph.getWeightsMatrix().get(arc, (long) objective); // TODO
+                    float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1); // TODO
+                    float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma + mu);
                     cost += tentativeTime; // TODO Add drive profile
                     // TrafficLight phase
                     if (TLFlag) {
@@ -160,6 +165,62 @@ public class MOIteratedLS {
             fit[objective] = mean;
             fit[objective+1] = variance;
         }
+        fit[fit.length - 1] = tlCount;
+        return fit;
+    }
+
+
+
+    private float[] fitness(List<Node> s) {
+        float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
+        int tlCount = 0;
+        long n1, n2;
+        float[] mu, sigma;
+        float[] sum = new float[2];
+        float[] sumSq = new float[2];
+
+        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+            float[] cost = new float[numObjectives/2];
+            for (int i = 0; i < s.size() - 1; i++) {
+                n1 = graph.getMapping().get(s.get(i).getId());
+                n2 = graph.getMapping().get(s.get(i + 1).getId());
+                long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                mu = new float[numObjectives/2];
+                sigma = new float[numObjectives/2];
+
+                for (int objective = 0; objective < numObjectives; objective += 2) {
+                    mu[objective] = graph.getWeightsMatrix().get(arc, (long) objective);
+                    sigma[objective] = graph.getWeightsMatrix().get(arc, (long) objective + 1);
+                }
+                float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma[0] + mu[0]); // time
+                float tentativePollution = Math.abs((float) rand.nextGaussian() * sigma[1] + mu[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
+                cost[0] = tentativeTime; // TODO Add drive profile
+                cost[1] = tentativePollution;
+                // TrafficLight phase
+                if (TLFlag) {
+                    TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                    if (tl != null) {
+                        tlCount++;
+                        int time = tl.calculateTimeStop(Math.round(cost[0] + 0.5d));
+                        cost[0] += time;
+                        float pollution = 2166.094f * (float) time; // c0 * time
+                        cost[1] += pollution;
+                    }
+                }
+            }
+            // MEANS
+            fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
+            fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
+            // Variances
+            sum[0] += cost[0];
+            sumSq[0] += cost[0] * cost[0];
+            sum[1] += cost[1];
+            sumSq[1] += cost[1] * cost[1];
+        }
+        fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+
+        fit[fit.length - 1] = tlCount;
         return fit;
     }
 }

@@ -101,7 +101,7 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
      * Traffic light version
      * @param pathSolution path to be evaluate
      */
-    public void evaluate(DoubleSolution pathSolution) {
+    public void evaluateAnterior(DoubleSolution pathSolution) {
         for (int objective = 0; objective < numObjectives; objective += 2) {
             int tlCount = 0;
             long n1, n2;
@@ -121,7 +121,7 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
                         float mu = graph.getWeightsMatrix().get(arc, (long) objective);
                         float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1L);
                         float tentativeTime = (float) randNormal(mu, sigma);
-                        System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
+//                        System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
                         cost += tentativeTime; // TODO Add drive profile
                         if (TLFlag) {
                             // TrafficLight phase
@@ -142,7 +142,71 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
             System.out.println("F " + mean + " " + variance + " " + tlCount);
             pathSolution.setObjective(objective, mean);
             pathSolution.setObjective(objective + 1, variance);
+            pathSolution.setAttribute("tl", tlCount);
         }
+    }
+
+    public void evaluate(DoubleSolution pathSolution) {
+        float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
+        int tlCount = 0;
+        long n1, n2;
+        float[] mu, sigma;
+        float[] sum = new float[2];
+        float[] sumSq = new float[2];
+
+        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+            float[] cost = new float[numObjectives/2];
+            boolean continuar = true;
+            for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
+                if ((pathSolution.getVariableValue(i)).longValue() == end) {
+                    continuar = false;
+                }
+                if (continuar) {
+                    n1 = pathSolution.getVariableValue(i).longValue();
+                    n2 = (pathSolution.getVariableValue(i + 1)).longValue();
+                    long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                    mu = new float[numObjectives / 2];
+                    sigma = new float[numObjectives / 2];
+
+                    for (int objective = 0; objective < numObjectives; objective += 2) {
+                        mu[objective] = graph.getWeightsMatrix().get(arc, (long) objective);
+                        sigma[objective] = graph.getWeightsMatrix().get(arc, (long) objective + 1);
+                    }
+                    float tentativeTime = (float) randNormal(mu[0], sigma[0]);
+                    float tentativePollution = (float) randNormal(mu[1], sigma[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
+                    cost[0] = tentativeTime; // TODO Add drive profile
+                    cost[1] = tentativePollution;
+                    // TrafficLight phase
+                    if (TLFlag) {
+                        TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                        if (tl != null) {
+                            tlCount++;
+                            int time = tl.calculateTimeStop(Math.round(cost[0] + 0.5d));
+                            cost[0] += time;
+                            float pollution = 2166.094f * (float) time; // c0 * time
+                            cost[1] += pollution;
+                        }
+                    }
+                }
+            }
+            // MEANS
+            fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
+            fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
+            // Variances
+            sum[0] += cost[0];
+            sumSq[0] += cost[0] * cost[0];
+            sum[1] += cost[1];
+            sumSq[1] += cost[1] * cost[1];
+        }
+        fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+
+        fit[fit.length - 1] = tlCount;
+        pathSolution.setObjective(0, fit[0]);
+        pathSolution.setObjective(1, fit[1]);
+        pathSolution.setObjective(2, fit[2]);
+        pathSolution.setObjective(3, fit[3]);
+        pathSolution.setAttribute("tl", tlCount);
     }
 
     /**
@@ -163,7 +227,7 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         } while (w >= 1.0);
         w = Math.sqrt((-2.0 * Math.log(w)) / w);
         y1 = x1 * w * (standardDeviation + mean);
-        return y1;
+        return Math.abs(y1);
     }
 
 
@@ -172,7 +236,7 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
 
         float peso = 0.5f;
         peso = new Double(randomGenerator.nextDouble()).floatValue();
-        System.out.println(peso);
+//        System.out.println(peso);
 
         Long[] aux = getRandomAstarPath(this.graph, this.start, this.end);
         Double[] auxD = new Double[aux.length];
@@ -302,7 +366,7 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         boolean valid;
         do {
             aux = new ArrayList<Long>(graph.getAdjacencyMatrix().row(current).keySet());
-            System.out.println(aux);
+//            System.out.println(aux);
             valid = false;
             while (aux.size() > 0 && !valid) {
                 int index = randomGenerator.nextInt(0, aux.size()-1);
@@ -318,12 +382,12 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
             }
         } while (!current.equals(end) && aux.size() > 0);
         Long[] pathArray = new Long[path.size()];
-        System.out.println("=== NEW INDIVIDUAL ===");
+//        System.out.println("=== NEW INDIVIDUAL ===");
         for (int i = 0; i < path.size(); i++) {
             pathArray[i] = path.get(i);
-            System.out.println(pathArray[i]);
+//            System.out.println(pathArray[i]);
         }
-        System.out.println("======");
+//        System.out.println("======");
         return pathArray;
     }
 
@@ -345,10 +409,10 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         //System.out.println("=== NEW INDIVIDUAL ===");
         for (int i = 0; i < path.size(); i++) {
             pathArray[i] = path.get(i);
-            System.out.print(pathArray[i] + " ");
+//            System.out.print(pathArray[i] + " ");
         //    System.out.println(pathArray[i]);
         }
-        System.out.println();
+//        System.out.println();
         //System.out.println("======");
 /*
         System.out.print("N " + pathArray.length + " --> ");
@@ -434,12 +498,12 @@ public class MOShortestPathProblemDouble implements Problem<DoubleSolution>, Dou
         }
 
         Long[] pathArray = new Long[path.size()];
-        System.out.println("=== NEW INDIVIDUAL ===");
+//        System.out.println("=== NEW INDIVIDUAL ===");
         for (int i = 0; i < path.size(); i++) {
             pathArray[i] = path.get(i);
-            System.out.println(pathArray[i]);
+//            System.out.println(pathArray[i]);
         }
-        System.out.println("======");
+//        System.out.println("======");
         return pathArray;
     }
 

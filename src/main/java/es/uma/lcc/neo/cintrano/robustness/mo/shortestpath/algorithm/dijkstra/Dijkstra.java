@@ -44,16 +44,16 @@ public class Dijkstra {
         setShortestDistance(from, 0f);
         unvisited.add(from);
 
-        System.out.println();
+//        System.out.println();
         while (!unvisited.isEmpty()) {
-            System.out.print(".");
+//            System.out.print(".");
             Long node = minDistance(unvisited);
-            if (node == to) {System.out.println("___________ A: ");return computePath(to);}
+            if (node == to) return computePath(to);
             unvisited.remove(node);
             visitNeighbors(node);
         }
 
-        System.out.println("___________ B: ");
+//        System.out.println("___________ B: ");
         return computePath(to);
     }
 
@@ -109,8 +109,8 @@ public class Dijkstra {
         Long step = target;
         // check if a path exists
         if (predecessors.get(step) == null) {
-            System.out.print(from + " ");
-            System.out.println(to);
+//            System.out.print(from + " ");
+//            System.out.println(to);
             if (getGraph().getAdjacencyMatrix().get(from.getId(), to.getId()) != null) {
             //if (getGraph().getAdjacencyMatrix().get(getGraph().getMapping().get(from.getId())
             //        , getGraph().getMapping().get(to.getId())) != null) {
@@ -118,14 +118,14 @@ public class Dijkstra {
                 path.add(to);
                 return path;
             }
-            System.out.println("No path found");
+//            System.out.println("No path found");
             return path;
         }
         path.add(graph.getIntersections().get(step));
         while (predecessors.get(step) != null) {
             step = predecessors.get(step);
             path.add(graph.getIntersections().get(step));
-            System.out.println("-------" + step + " "+ graph.getIntersections().get(step).getId());
+//            System.out.println("-------" + step + " "+ graph.getIntersections().get(step).getId());
         }
         // Put it into the correct order
         Collections.reverse(path);

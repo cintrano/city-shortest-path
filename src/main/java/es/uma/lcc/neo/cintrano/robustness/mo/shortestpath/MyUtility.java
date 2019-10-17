@@ -1,10 +1,14 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath;
 
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public class MyUtility {
@@ -96,6 +100,7 @@ public class MyUtility {
             line += t2 + " ";
             line += algorithm + " ";
             line += i + " ";
+            line += s.getTl() + " ";
             line += s.getObjectives()[0] + " ";
             line += s.getObjectives()[1] + " ";
             line += s.getObjectives()[2] + " ";
@@ -123,14 +128,44 @@ public class MyUtility {
                 String line = graph.getMapping().get(s.getVariables()[0]) + " ";
                 line += graph.getMapping().get(s.getVariables()[s.getVariables().length - 1]) + " ";
                 line += seed + " ";
-                line += t1 + " ";
-                line += t2 + " ";
+                line += (t1 + t2) + " ";
+                line += s.getTl() + " ";
                 line += algorithm + " ";
                 line += i + " ";
                 line += s.getObjectives()[0] + " ";
                 line += s.getObjectives()[1] + " ";
-//                line += s.getObjectives()[2] + " ";
-//                line += s.getObjectives()[3] + " ";
+                line += s.getObjectives()[2] + " ";
+                line += s.getObjectives()[3] + " ";
+                line += index + " ";
+                line += "\n";
+                out.write(line);
+                index ++;
+            }
+
+        } catch (IOException e) {
+            // error processing code
+        } finally {
+            if (out != null) try {
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            out = new BufferedWriter(new FileWriter("resultsVAR.ssv", true));
+            int index = 0;
+            for (NodePathSolution s : paths) {
+                String line = graph.getMapping().get(s.getVariables()[0]) + " ";
+                line += graph.getMapping().get(s.getVariables()[s.getVariables().length - 1]) + " ";
+                line += seed + " ";
+                line += t1 + " ";
+                line += t2 + " ";
+                line += algorithm + " ";
+                line += i + " ";
+                for (Long l : s.getVariables()) {
+                    line += l + " ";
+                }
                 line += index + " ";
                 line += "\n";
                 out.write(line);
@@ -227,5 +262,43 @@ public class MyUtility {
         }
         var = var / (samples.size() -1);
         return var;
+    }
+
+
+    public static float[] fitnessTL(GraphTable graph, long[] s, int numObjectives, int MAX_SAMPLES, Random rand) {
+        float[] fit = new float[numObjectives];
+        for (int objective = 0; objective < numObjectives; objective += 2) {
+            int tlCount = 0;
+            long n1, n2;
+            float amount = 0;
+            List<Double> samples = new ArrayList<>();
+            for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+                double cost = 0;
+                for (int i = 0; i < s.length - 1; i++) {
+                    n1 = graph.getMapping().get(s[i]);
+                    n2 = graph.getMapping().get(s[i + 1]);
+                    long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                    float mu = graph.getWeightsMatrix().get(arc, (long) objective);
+                    float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1);
+                    float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma + mu);
+                    cost += tentativeTime; // TODO Add drive profile
+                    // TrafficLight phase
+                    TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                    if (tl != null) {
+                        tlCount++;
+                        int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
+                        cost += time;
+                    }
+                }
+                samples.add(cost);
+                amount += cost;
+            }
+            float mean = amount / (float) MAX_SAMPLES;
+            float variance = MyUtility.variance(samples, mean);
+            System.out.println("F " + mean + " " + variance + " " + tlCount);
+            fit[objective] = mean;
+            fit[objective+1] = variance;
+        }
+        return fit;
     }
 }

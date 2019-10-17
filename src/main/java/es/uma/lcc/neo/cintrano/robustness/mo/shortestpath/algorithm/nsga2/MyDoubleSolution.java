@@ -3,13 +3,18 @@ package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2;
 import org.uma.jmetal.solution.DoubleSolution;
 import org.uma.jmetal.solution.Solution;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MyDoubleSolution implements DoubleSolution {
     double[] objectives;
     Double[] variables;
+    protected Map<Object, Object> attributes ;
 
     public MyDoubleSolution(double[] objectives, Double[] variables) {
         this.objectives = objectives;
         this.variables = variables;
+        attributes = new HashMap<Object, Object>() ;
     }
 
     @Override
@@ -89,13 +94,17 @@ public class MyDoubleSolution implements DoubleSolution {
 
 
     @Override
-    public void setAttribute(Object o, Object o1) {
-
+    public void setAttribute(Object id, Object value) {
+        attributes.put(id, value) ;
     }
 
     @Override
-    public Object getAttribute(Object o) {
-        return null;
+    public Object getAttribute(Object id) {
+        return attributes.get(id) ;
+    }
+
+    public Map<Object, Object> getAttributes() {
+        return attributes;
     }
 }
 

@@ -16,6 +16,7 @@ public class NodePathSolution implements Solution<Long> {
     private double[] objectives;
     private Long[] variables;
     protected Map<Object, Object> attributes ;
+    private int tl = 0;
 
     public NodePathSolution(double[] objectives, Long[] variables) {
         this.objectives = objectives;
@@ -121,5 +122,13 @@ public class NodePathSolution implements Solution<Long> {
 
     public double[] getObjectives() {
         return objectives;
+    }
+
+    public int getTl() {
+        return tl;
+    }
+
+    public void setTl(int tl) {
+        this.tl = tl;
     }
 }
