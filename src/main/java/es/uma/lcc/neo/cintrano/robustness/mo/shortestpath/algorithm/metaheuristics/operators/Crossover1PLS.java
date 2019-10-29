@@ -1,6 +1,6 @@
-package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators;
+package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators;
 
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution;
 import org.uma.jmetal.operator.CrossoverOperator;
 import org.uma.jmetal.util.JMetalException;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;

@@ -4,12 +4,13 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.AstarM
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDim;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.IteratedLS;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.MOIteratedLS;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblem;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblemDouble;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDifferentialEvolutionCrossover;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Crossover1PLS;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Mutation1PChange;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Mutation1PChangeD;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MOEADSTMTime;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MOShortestPathProblem;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MOShortestPathProblemDouble;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDifferentialEvolutionCrossover;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Crossover1PLS;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Mutation1PChange;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Mutation1PChangeD;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.Pulse;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.PulseMO;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
@@ -20,6 +21,7 @@ import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEAD;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEADSTM;
 import org.uma.jmetal.algorithm.multiobjective.nsgaii.NSGAII;
+import org.uma.jmetal.algorithm.multiobjective.nsgaii.NSGAIIStoppingByTime;
 import org.uma.jmetal.operator.CrossoverOperator;
 import org.uma.jmetal.operator.MutationOperator;
 import org.uma.jmetal.operator.impl.selection.BinaryTournamentSelection;
@@ -50,6 +52,8 @@ public class RunTLMain {
     public final static Long[] objectives = new Long[]{0L, 1L, 2L, 3L};
     private final static float[] weights = new float[]{0.0001f, 0.25f, 0.5f, 0.75f, 1.0f};
 
+    private final static int POPULATION_SIZE = 100;
+
     public static void main (String[] args) {
         System.out.println("=== START EXPERIMENTS ===");
         for (String s : args) {
@@ -70,7 +74,7 @@ public class RunTLMain {
             ProcessGraph.readTlLogics(graph, "malaga_tls.json");
 
 
-            reevaluateSolutions(output_file, path, graph);
+            reevaluateSolutions(output_file, path, graph, args[3].equals("META"));
         } else if (args.length >= 3) {
             GraphTable graph = null;
             // Map
@@ -137,9 +141,17 @@ public class RunTLMain {
                         System.out.println("Run NSGA-II...");
                         rNSGAII(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
                         break;
+                    case "NSGAIItime":
+                        System.out.println("Run NSGA-II stopping by time...");
+                        rNSGAIITime(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
+                        break;
                     case "MOEAD":
                         System.out.println("Run MOEA-D...");
                         rMOEAD(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
+                        break;
+                    case "MOEADTime":
+                        System.out.println("Run MOEA-D stopping by time...");
+                        rMOEADTime(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
                         break;
                     case "NSGAIII":
                         System.out.println("Run NSGA-III...");
@@ -153,6 +165,10 @@ public class RunTLMain {
                         System.out.println("Run MOIterated...");
                         rMOIterated(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
                         break;
+                    case "MOIteratedTime":
+                        System.out.println("Run MOIterated stopping by time...");
+                        rMOIteratedTime(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
+                        break;
                 }
             }
         } else {
@@ -162,50 +178,71 @@ public class RunTLMain {
         System.out.println("=== END EXPERIMENTS ===");
     }
 
-    private static void reevaluateSolutions(String output_file, String path, GraphTable graph) {
-        final String FILE_NAME = "resultsVAR.ssv";
+    private static void reevaluateSolutions(String output_file, String path, GraphTable graph, boolean meta) {
+        String FILE_NAME = "resultsVAR.ssv";
+        if (meta) FILE_NAME = "result_V.csv";
+
         File file = new File(path);
         String[] directories = file.list((current, name) -> new File(current, name).isDirectory());
         System.out.println(Arrays.toString(directories));
-        assert directories != null;
-        for (String directory : directories) {
-            String[] tokens = directory.split(".");
-            BufferedReader br;
-            FileWriter fw;
-            float[] fitness;
-            try {
-                br = new BufferedReader(new FileReader(path + directory + "/" + FILE_NAME));
-                fw = new FileWriter(output_file);
+        try {
+            FileWriter fw = new FileWriter(output_file);
+            assert directories != null;
+            for (String directory : directories) {
+                String[] tokens = directory.split("[.]");
+                System.out.println(directory  + " " + tokens.length);
+                BufferedReader br;
+                float[] fitness;
+                    br = new BufferedReader(new FileReader(path + directory + "/" + FILE_NAME));
 
-                String outLine;
-                String line = br.readLine();
-                while (line != null) {
-                    fitness = reevaluateSolution(line, graph);
-                    // TODO print line as output
-                    outLine = "Reeval" + "\t";
-                    outLine += tokens[0] + "\t" + (Integer.parseInt(tokens[3])%30) + "\t";
-                    outLine += tokens[1] + "\t" + tokens[2] + "\t";
-                    outLine += tokens[1] + "\t" + tokens[2] + "\t"; // Dummy time
+                    String outLine;
+                    String line = br.readLine();
+                    int i = 0;
+                    while (line != null) {
+                        fitness = reevaluateSolution(line, graph, tokens[1].equals("Robust"), meta);
+                        // TODO print line as output
+                        outLine = "Reeval" + "\t";
+                        outLine += tokens[0] + "\t" + (Integer.parseInt(tokens[3])%30) + "\t";
+                        outLine += tokens[1] + "\t" + tokens[2] + "\t"; // Robust, TL
+                        outLine += i + "\t" + tokens[0] + "\t"; // Dummy time
 
-                    fw.write(outLine);
-                    line = br.readLine();
-                }
+                        outLine += fitness[fitness.length - 1] + "\t";
+                        outLine += fitness[0] + "\t" + fitness[1] + "\t" + fitness[2] + "\t" + fitness[3];
+                        fw.write(outLine + "\n");
+                        line = br.readLine();
+                        i++;
+                    }
 
-                br.close();
-                fw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+                    br.close();
             }
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private static float[] reevaluateSolution(String line, GraphTable graph) {
+    private static float[] reevaluateSolution(String line, GraphTable graph, boolean robustFlag, boolean meta) {
         String[] tokens = line.split(" ");
-        String[] solString = Arrays.copyOfRange(tokens, 7, tokens.length - 1);
-        long[] sol = Arrays.stream(solString).mapToLong(Long::parseLong).toArray();
-        Random rand = new Random();
-        rand.setSeed(13);
-        return MyUtility.fitnessTL(graph, sol, 4, 30, rand);
+        long[] sol;
+        if (meta) {
+            int start = 2;
+            String[] solString = Arrays.copyOfRange(tokens, start, tokens.length);
+            sol = new long[solString.length];
+            for (int i = 0; i < sol.length; i++) {
+                double d = Double.parseDouble(solString[i]);
+                sol[i] = (new Double(d)).longValue();
+            }
+            Random rand = new Random();
+            rand.setSeed(13);
+            return MyUtility.fitnessTLMeta(graph, sol, 4, 30, robustFlag, rand);
+        } else {
+            int start = 7;
+            String[] solString = Arrays.copyOfRange(tokens, start, tokens.length - 1);
+            sol = Arrays.stream(solString).mapToLong(Long::parseLong).toArray();
+            Random rand = new Random();
+            rand.setSeed(13);
+            return MyUtility.fitnessTL(graph, sol, 4, 30, robustFlag, rand);
+        }
     }
 
 
@@ -226,6 +263,20 @@ public class RunTLMain {
         algorithm.setGraph(graph);
         algorithm.setRobustFlag(robust);
         algorithm.setTLFlag(tlOption);
+        long timeStart = System.currentTimeMillis();
+        Set<NodePathSolution> paths = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
+        long timeEnd = System.currentTimeMillis();
+        String wTag = "1-1-1-1";
+        MyUtility.printSolutions(graph, paths, timeStart - timeInit, timeEnd - timeStart, "MOIterated", wTag, seed);
+    }
+
+    private static void rMOIteratedTime(GraphTable graph, Long[] points, int seed, boolean robust, boolean tlOption) {
+        long timeInit = System.currentTimeMillis();
+        MOIteratedLS algorithm = new MOIteratedLS(seed);
+        algorithm.setGraph(graph);
+        algorithm.setRobustFlag(robust);
+        algorithm.setTLFlag(tlOption);
+        algorithm.setThresholdComputingTime(60*1000);
         long timeStart = System.currentTimeMillis();
         Set<NodePathSolution> paths = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
         long timeEnd = System.currentTimeMillis();
@@ -331,8 +382,19 @@ public class RunTLMain {
                 0.9, //crossoverProbability,
                 0.1, //mutationProbability,
                 10000,//numIterations,
-                16,//populationSize,
+                POPULATION_SIZE,//populationSize,
                 "NSGAII"
+        );
+    }
+    private static void rNSGAIITime(GraphTable graph, Long[] points, long seed, boolean robust, boolean tlOption) {
+        executeAlgorithm(
+                new MOShortestPathProblem(graph, points[0], points[1], 10, robust, tlOption),
+                seed,
+                0.9, //crossoverProbability,
+                0.1, //mutationProbability,
+                10000,//numIterations,
+                POPULATION_SIZE,//populationSize,
+                "NSGAIITime"
         );
     }
 
@@ -343,8 +405,20 @@ public class RunTLMain {
                 0.9, //crossoverProbability,
                 0.1, //mutationProbability,
                 10000,//numIterations,
-                16,//populationSize,
+                POPULATION_SIZE,//populationSize,
                 "MOEAD"
+        );
+    }
+
+    private static void rMOEADTime(GraphTable graph, Long[] points, long seed, boolean robust, boolean tloption) {
+        executeAlgorithm(
+                new MOShortestPathProblemDouble(graph, points[0], points[1], 10, robust, tloption),
+                seed,
+                0.9, //crossoverProbability,
+                0.1, //mutationProbability,
+                10000,//numIterations,
+                POPULATION_SIZE,//populationSize,
+                "MOEADTime"
         );
     }
 
@@ -393,8 +467,33 @@ public class RunTLMain {
 
 
             AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
-            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population =
-                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution>) algorithm.getResult();
+            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution> population =
+                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution>) algorithm.getResult();
+            long computingTime = algorithmRunner.getComputingTime();
+
+            JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
+
+            fillLog(population, 111L);
+            printStaticFinalLog(algorithm, computingTime);
+
+            printFinalSolutionSet(population);
+
+        }
+        if (metaheuristic.equals("MOEADTime")) {
+            double mutationDistributionIndex = 20.0 ;
+            mutation = new Mutation1PChangeD((MOShortestPathProblemDouble) problem, mutationProbability, mutationDistributionIndex);
+            label += "MOEADTime";
+
+            algorithm = new MOEADSTMTime(problem, 60*1000, populationSize, populationSize, numIterations, mutation, new MyDifferentialEvolutionCrossover(0.5, 0.5, "rand/1/bin"), MOEAD.FunctionType.TCHE, "es/uma/lcc/neo/cintrano/robustness/mo/shortestpath", 0.9, 5, 5);//selection, evaluator);
+
+            InputStream in = algorithm.getClass().getResourceAsStream("/" + "" + "/" + "/W4D_10.dat");
+            System.out.println(in);
+            System.out.println(algorithm.getClass().getName());
+
+
+            AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
+            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution> population =
+                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution>) algorithm.getResult();
             long computingTime = algorithmRunner.getComputingTime();
 
             JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
@@ -410,26 +509,14 @@ public class RunTLMain {
             double mutationDistributionIndex = 20.0;
             mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
             label += "NSGAII";
-            final BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> selection = new BinaryTournamentSelection<>(new RankingAndCrowdingDistanceComparator<>());
-            SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<>();
+            final BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> selection = new BinaryTournamentSelection<>(new RankingAndCrowdingDistanceComparator<>());
+            SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<>();
 
             algorithm = new NSGAII<>(problem, numIterations, populationSize, crossover, mutation, selection, new DominanceComparator<>(), evaluator);
-//
-//            final MeasureManager measures = ((NSGAIIMeasures) algorithm).getMeasureManager();
-//            PushMeasure<Object> pushMeasure = measures.getPushMeasure("currentIteration");
-//            final Algorithm<List<NodePathSolution>> finalAlgorithm = algorithm;
-//            //final Algorithm finalAlgorithm = algorithm;
-//            System.err.print("-------> : ");
-//            System.err.println((List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>) ((NSGAIIMeasures) finalAlgorithm).getPopulation());
-//            System.err.println(pushMeasure);
-//            pushMeasure.register(o -> {
-//                fillLogN((List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>) ((NSGAIIMeasures) finalAlgorithm).getPopulation(), o);
-//            });
-
 
             AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
-            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> population =
-                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>) algorithm.getResult();
+            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> population =
+                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution>) algorithm.getResult();
             long computingTime = algorithmRunner.getComputingTime();
 
             JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
@@ -439,25 +526,33 @@ public class RunTLMain {
 
             printFinalSolutionSet(population);
         }
-//        if (algorithm != null) {
-//            AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
-//            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population =
-//                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution>) algorithm.getResult();
-//            long computingTime = algorithmRunner.getComputingTime();
-//
-//            JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
-//
-//            fillLog(population, 111L);
-//            printStaticFinalLog(algorithm, computingTime, label);
-//
-//            printFinalSolutionSet(population);
-//        }
+        if (metaheuristic.equals("NSGAIITime")) {
+            double mutationDistributionIndex = 20.0;
+            mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
+            label += "NSGAIITime";
+            final BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> selection = new BinaryTournamentSelection<>(new RankingAndCrowdingDistanceComparator<>());
+            SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<>();
+
+            algorithm = new NSGAIIStoppingByTime(problem, populationSize, 60*1000,
+                    crossover, mutation, selection, new DominanceComparator<>());
+            AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
+            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> population =
+                    (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution>) algorithm.getResult();
+            long computingTime = algorithmRunner.getComputingTime();
+
+            JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
+
+            fillLogN(population, 111L);
+            printStaticFinalLog(algorithm, computingTime, label);
+
+            printFinalSolutionSet(population);
+        }
     }
 
-    private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population, Object o) {
+    private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution> population, Object o) {
         List<double[]> f = new ArrayList<>();
         List<Double[]> v = new ArrayList<>();
-        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution solution : population) {
+        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution solution : population) {
             f.add(solution.getObjectives());
             v.add(solution.getVariables());
         }
@@ -465,10 +560,10 @@ public class RunTLMain {
         solutions.put((Long) o, v);
     }
 
-    private static void fillLogN(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution> population, Object o) {
+    private static void fillLogN(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> population, Object o) {
         List<double[]> f = new ArrayList<>();
         List<Double[]> v = new ArrayList<>();
-        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution solution : population) {
+        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution solution : population) {
             //lista.add(solution.getObjective(0));
             f.add(solution.getObjectives());
 
@@ -478,7 +573,7 @@ public class RunTLMain {
         solutions.put((Long) o, v);
     }
 
-    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.NodePathSolution>> algorithm, long time, String label) {
+    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution>> algorithm, long time, String label) {
         Writer writer = null;
         String filename = "result_F.csv";
         try {
@@ -531,7 +626,7 @@ public class RunTLMain {
         }
     }
 
-    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution>> algorithm, long time) {
+    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution>> algorithm, long time) {
         Writer writer = null;
         String filename = "result_F.csv";
         try {

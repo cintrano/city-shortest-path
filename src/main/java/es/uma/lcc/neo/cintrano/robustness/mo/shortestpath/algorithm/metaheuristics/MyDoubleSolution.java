@@ -1,4 +1,4 @@
-package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2;
+package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics;
 
 import org.uma.jmetal.solution.DoubleSolution;
 import org.uma.jmetal.solution.Solution;

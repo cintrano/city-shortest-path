@@ -1,4 +1,4 @@
-package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2;
+package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics;
 
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.MyUtility;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.Astar;
@@ -162,14 +162,21 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
                 mu = new float[numObjectives/2];
                 sigma = new float[numObjectives/2];
 
-                for (int objective = 0; objective < numObjectives; objective += 2) {
+                for (int objective = 0; objective < numObjectives/2; objective ++) {
                     mu[objective] = graph.getWeightsMatrix().get(arc, (long) objective);
                     sigma[objective] = graph.getWeightsMatrix().get(arc, (long) objective + 1);
                 }
-                float tentativeTime = (float) randNormal(mu[0], sigma[0]);
-                float tentativePollution = (float) randNormal(mu[1], sigma[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
-                cost[0] = tentativeTime; // TODO Add drive profile
-                cost[1] = tentativePollution;
+                float tentativeTime;
+                float tentativePollution;
+                if (robustFlag) {
+                    tentativeTime = (float) randNormal(mu[0], sigma[0]);
+                    tentativePollution = (float) randNormal(mu[1], sigma[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
+                } else {
+                    tentativeTime = mu[0];
+                    tentativePollution = mu[1];
+                }
+                cost[0] += tentativeTime; // TODO Add drive profile
+                cost[1] += tentativePollution;
                 // TrafficLight phase
                 if (TLFlag) {
                     TlLogic tl = graph.getTlMatrix().get(n1, n2);
@@ -183,22 +190,31 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
                 }
             }
             // MEANS
-            fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
-            fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
-            // Variances
-            sum[0] += cost[0];
-            sumSq[0] += cost[0] * cost[0];
-            sum[1] += cost[1];
-            sumSq[1] += cost[1] * cost[1];
+            if (robustFlag) {
+                fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
+                fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
+                // Variances
+                sum[0] += cost[0];
+                sumSq[0] += cost[0] * cost[0];
+                sum[1] += cost[1];
+                sumSq[1] += cost[1] * cost[1];
+            } else {
+                fit[0] = cost[0];
+                fit[2] = cost[2];
+            }
         }
-        fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
-        fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        if (robustFlag) {
+            fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+            fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        } else {
+            fit[1] = 0;
+            fit[3] = 0;
+        }
 
         fit[fit.length - 1] = tlCount;
-        pathSolution.setObjective(0, fit[0]);
-        pathSolution.setObjective(1, fit[1]);
-        pathSolution.setObjective(2, fit[2]);
-        pathSolution.setObjective(3, fit[3]);
+        for (int i = 0; i < pathSolution.getNumberOfObjectives(); i++) {
+            pathSolution.setObjective(i, fit[i]);
+        }
         pathSolution.setTl(tlCount);
         pathSolution.setAttribute("tl", tlCount);
     }

@@ -265,40 +265,119 @@ public class MyUtility {
     }
 
 
-    public static float[] fitnessTL(GraphTable graph, long[] s, int numObjectives, int MAX_SAMPLES, Random rand) {
-        float[] fit = new float[numObjectives];
-        for (int objective = 0; objective < numObjectives; objective += 2) {
-            int tlCount = 0;
-            long n1, n2;
-            float amount = 0;
-            List<Double> samples = new ArrayList<>();
-            for (int sample = 0; sample < MAX_SAMPLES; sample++) {
-                double cost = 0;
-                for (int i = 0; i < s.length - 1; i++) {
-                    n1 = graph.getMapping().get(s[i]);
-                    n2 = graph.getMapping().get(s[i + 1]);
-                    long arc = graph.getAdjacencyMatrix().get(n1, n2);
-                    float mu = graph.getWeightsMatrix().get(arc, (long) objective);
-                    float sigma = graph.getWeightsMatrix().get(arc, (long) objective + 1);
-                    float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma + mu);
-                    cost += tentativeTime; // TODO Add drive profile
-                    // TrafficLight phase
-                    TlLogic tl = graph.getTlMatrix().get(n1, n2);
-                    if (tl != null) {
-                        tlCount++;
-                        int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
-                        cost += time;
-                    }
+    public static float[] fitnessTL(GraphTable graph, long[] s, int numObjectives, int MAX_SAMPLES, boolean robustFlag, Random rand) {
+        float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
+        int tlCount = 0;
+        long n1, n2;
+        float[] mu, sigma;
+        float[] sum = new float[2];
+        float[] sumSq = new float[2];
+
+        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+            float[] cost = new float[numObjectives/2];
+            for (int i = 0; i < s.length - 1; i++) {
+                n1 = graph.getMapping().get(s[i]);
+                n2 = graph.getMapping().get(s[i + 1]);
+                long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                mu = new float[numObjectives/2];
+                sigma = new float[numObjectives/2];
+
+                for (int objective = 0; objective < numObjectives/2; objective ++) {
+                    mu[objective] = graph.getWeightsMatrix().get(arc, (long) objective);
+                    sigma[objective] = graph.getWeightsMatrix().get(arc, (long) objective + 1);
                 }
-                samples.add(cost);
-                amount += cost;
+                float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma[0] + mu[0]); // time
+                float tentativePollution = Math.abs((float) rand.nextGaussian() * sigma[1] + mu[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
+                cost[0] = tentativeTime; // TODO Add drive profile
+                cost[1] = tentativePollution;
+                // TrafficLight phase
+                TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                if (tl != null) {
+                    tlCount++;
+                    int time = tl.calculateTimeStop(Math.round(cost[0] + 0.5d));
+                    cost[0] += time;
+                    float pollution = 2166.094f * (float) time; // c0 * time
+                    cost[1] += pollution;
+                }
             }
-            float mean = amount / (float) MAX_SAMPLES;
-            float variance = MyUtility.variance(samples, mean);
-            System.out.println("F " + mean + " " + variance + " " + tlCount);
-            fit[objective] = mean;
-            fit[objective+1] = variance;
+            // MEANS
+            fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
+            fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
+            if (robustFlag) {
+                // Variances
+                sum[0] += cost[0];
+                sumSq[0] += cost[0] * cost[0];
+                sum[1] += cost[1];
+                sumSq[1] += cost[1] * cost[1];
+            }
         }
+        if (robustFlag) {
+            fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+            fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        } else {
+            fit[1] = 0;
+            fit[3] = 0;
+        }
+
+        fit[fit.length - 1] = tlCount;
+        return fit;
+    }
+
+    public static float[] fitnessTLMeta(GraphTable graph, long[] s, int numObjectives, int MAX_SAMPLES, boolean robustFlag, Random rand) {
+        float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
+        int tlCount = 0;
+        long n1, n2;
+        float[] mu, sigma;
+        float[] sum = new float[2];
+        float[] sumSq = new float[2];
+
+        for (int sample = 0; sample < MAX_SAMPLES; sample++) {
+            float[] cost = new float[numObjectives/2];
+            for (int i = 0; i < s.length - 1; i++) {
+                n1 = s[i];
+                n2 = s[i + 1];
+                long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                mu = new float[numObjectives/2];
+                sigma = new float[numObjectives/2];
+
+                for (int objective = 0; objective < numObjectives/2; objective ++) {
+                    mu[objective] = graph.getWeightsMatrix().get(arc, (long) objective);
+                    sigma[objective] = graph.getWeightsMatrix().get(arc, (long) objective + 1);
+                }
+                float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma[0] + mu[0]); // time
+                float tentativePollution = Math.abs((float) rand.nextGaussian() * sigma[1] + mu[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
+                cost[0] = tentativeTime; // TODO Add drive profile
+                cost[1] = tentativePollution;
+                // TrafficLight phase
+                TlLogic tl = graph.getTlMatrix().get(n1, n2);
+                if (tl != null) {
+                    tlCount++;
+                    int time = tl.calculateTimeStop(Math.round(cost[0] + 0.5d));
+                    cost[0] += time;
+                    float pollution = 2166.094f * (float) time; // c0 * time
+                    cost[1] += pollution;
+                }
+            }
+            // MEANS
+            fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
+            fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
+            if (robustFlag) {
+                // Variances
+                sum[0] += cost[0];
+                sumSq[0] += cost[0] * cost[0];
+                sum[1] += cost[1];
+                sumSq[1] += cost[1] * cost[1];
+            }
+        }
+        if (robustFlag) {
+            fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+            fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        } else {
+            fit[1] = 0;
+            fit[3] = 0;
+        }
+
+        fit[fit.length - 1] = tlCount;
         return fit;
     }
 }

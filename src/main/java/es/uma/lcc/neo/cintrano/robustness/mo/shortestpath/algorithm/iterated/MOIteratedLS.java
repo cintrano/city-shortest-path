@@ -16,7 +16,11 @@ public class MOIteratedLS {
     private static int MAX_SAMPLES = 30;
     private GraphTable graph;
     private Random rand;
+    // Stopping criteria
     private int maxIterations = 100;
+    private long initComputingTime ;
+    private long thresholdComputingTime = 0;
+    // Flags
     private boolean robustFlag = true;
     private boolean TLFlag = true;
     private int numObjectives = 4;
@@ -28,10 +32,22 @@ public class MOIteratedLS {
     public MOIteratedLS(int seed) {
         this();
         rand.setSeed(seed);
+        thresholdComputingTime = 0;
+    }
+
+    public MOIteratedLS(int seed, long thresholdComputingTime) {
+        this();
+        rand.setSeed(seed);
+        initComputingTime = System.currentTimeMillis() ;
+        this.thresholdComputingTime = thresholdComputingTime;
     }
 
     public void setMaxIterations(int maxIterations) {
         this.maxIterations = maxIterations;
+    }
+
+    public void setThresholdComputingTime(int thresholdComputingTime) {
+        this.thresholdComputingTime = thresholdComputingTime;
     }
 
     public void setGraph(GraphTable graph) {
@@ -55,7 +71,8 @@ public class MOIteratedLS {
         nps.setTl((int) fCurrent[fCurrent.length-1]);
         nonDominated.add(nps);
         int iteration = 0;
-        while (iteration < maxIterations) {
+
+        while (!isStoppingConditionReached(iteration)) {
             current = mutate(best, weights); // weights is a Dijkstra param
             fCurrent = fitness(current);
             if (updateNonDominated(nonDominated, fCurrent, current)) {
@@ -64,6 +81,15 @@ public class MOIteratedLS {
             iteration++;
         }
         return nonDominated;
+    }
+
+    private boolean isStoppingConditionReached(int iteration) {
+        if (thresholdComputingTime != 0) {
+            long currentComputingTime = System.currentTimeMillis() - initComputingTime;
+            return currentComputingTime > thresholdComputingTime;
+        } else {
+            return iteration >= maxIterations;
+        }
     }
 
     public void setRobustFlag(boolean robustFlag) {
@@ -188,14 +214,21 @@ public class MOIteratedLS {
                 mu = new float[numObjectives/2];
                 sigma = new float[numObjectives/2];
 
-                for (int objective = 0; objective < numObjectives; objective += 2) {
+                for (int objective = 0; objective < numObjectives/2; objective ++) {
                     mu[objective] = graph.getWeightsMatrix().get(arc, (long) objective);
                     sigma[objective] = graph.getWeightsMatrix().get(arc, (long) objective + 1);
                 }
-                float tentativeTime = Math.abs((float) rand.nextGaussian() * sigma[0] + mu[0]); // time
-                float tentativePollution = Math.abs((float) rand.nextGaussian() * sigma[1] + mu[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
-                cost[0] = tentativeTime; // TODO Add drive profile
-                cost[1] = tentativePollution;
+                float tentativeTime;
+                float tentativePollution;
+                if (robustFlag) {
+                    tentativeTime = Math.abs((float) rand.nextGaussian() * sigma[0] + mu[0]); // time
+                    tentativePollution = Math.abs((float) rand.nextGaussian() * sigma[1] + mu[1]);//mu[0] * (tentativeTime/mu[0]); // CO2
+                } else {
+                    tentativeTime = mu[0];
+                    tentativePollution = mu[1];
+                }
+                cost[0] += tentativeTime; // TODO Add drive profile
+                cost[1] += tentativePollution;
                 // TrafficLight phase
                 if (TLFlag) {
                     TlLogic tl = graph.getTlMatrix().get(n1, n2);
@@ -209,16 +242,26 @@ public class MOIteratedLS {
                 }
             }
             // MEANS
-            fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
-            fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
-            // Variances
-            sum[0] += cost[0];
-            sumSq[0] += cost[0] * cost[0];
-            sum[1] += cost[1];
-            sumSq[1] += cost[1] * cost[1];
+            if (robustFlag) {
+                fit[0] = (fit[0] * sample + cost[0]) / (sample + 1);
+                fit[2] = (fit[2] * sample + cost[1]) / (sample + 1);
+                // Variances
+                sum[0] += cost[0];
+                sumSq[0] += cost[0] * cost[0];
+                sum[1] += cost[1];
+                sumSq[1] += cost[1] * cost[1];
+            } else {
+                fit[0] = cost[0];
+                fit[2] = cost[2];
+            }
         }
-        fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
-        fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        if (robustFlag) {
+            fit[1] = (sumSq[0] - (sum[0] * sum[0]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+            fit[3] = (sumSq[1] - (sum[1] * sum[1]) / (float) MAX_SAMPLES) / (float) MAX_SAMPLES;
+        } else {
+            fit[1] = 0;
+            fit[3] = 0;
+        }
 
         fit[fit.length - 1] = tlCount;
         return fit;

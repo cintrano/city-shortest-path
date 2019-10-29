@@ -1,9 +1,9 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath;
 
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWNDim;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblemDouble;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDifferentialEvolutionCrossover;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Mutation1PChangeD;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MOShortestPathProblemDouble;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDifferentialEvolutionCrossover;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Mutation1PChangeD;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.Pulse;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.PulseMO;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
@@ -11,8 +11,8 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.AstarMO;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MOShortestPathProblem;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.operators.Crossover1PLS;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MOShortestPathProblem;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Crossover1PLS;
 import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEAD;
 import org.uma.jmetal.algorithm.multiobjective.moead.MOEADSTM;
@@ -412,7 +412,7 @@ public class RunMain {
         if (algorithm != null) {
             AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
 
-            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population = (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution>) algorithm.getResult();
+            List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution> population = (List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution>) algorithm.getResult();
             long computingTime = algorithmRunner.getComputingTime();
 
             JMetalLogger.logger.info("Total execution time: " + computingTime + "ms");
@@ -442,10 +442,10 @@ public class RunMain {
         solutions.put((Long) o, v);
     }
 */
-    private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution> population, Object o) {
+    private static void fillLog(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution> population, Object o) {
         List<double[]> f = new ArrayList<double[]>();
         List<Double[]> v = new ArrayList<Double[]>();
-        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.nsga2.MyDoubleSolution solution : population) {
+        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution solution : population) {
             //lista.add(solution.getObjective(0));
             f.add(solution.getObjectives());
             v.add(solution.getVariables());
