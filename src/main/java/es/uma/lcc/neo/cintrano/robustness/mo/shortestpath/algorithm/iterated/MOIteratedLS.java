@@ -252,7 +252,7 @@ public class MOIteratedLS {
                 sumSq[1] += cost[1] * cost[1];
             } else {
                 fit[0] = cost[0];
-                fit[2] = cost[2];
+                fit[2] = cost[1];
             }
         }
         if (robustFlag) {

@@ -7,14 +7,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MyDoubleSolution implements DoubleSolution {
-    double[] objectives;
-    Double[] variables;
-    protected Map<Object, Object> attributes ;
+    private double[] objectives;
+    private Double[] variables;
+    private Map<String, Integer> attributes;
 
-    public MyDoubleSolution(double[] objectives, Double[] variables) {
+    MyDoubleSolution(double[] objectives, Double[] variables) {
         this.objectives = objectives;
         this.variables = variables;
-        attributes = new HashMap<Object, Object>() ;
+        attributes = new HashMap<>() ;
     }
 
     @Override
@@ -66,9 +66,10 @@ public class MyDoubleSolution implements DoubleSolution {
         this.variables[i % variables.length] = aDouble;
     }
 
-    public void setVariables(Double[] variables) {
-        this.variables = variables;
+    public void setVariables(Double[] aDouble) {
+        this.variables = aDouble;
     }
+
 
     @Override
     public String getVariableValueString(int i) {
@@ -89,13 +90,17 @@ public class MyDoubleSolution implements DoubleSolution {
     public Solution<Double> copy() {
         double[] objectivesN = objectives.clone();
         Double[] variablesN = variables.clone();
-        return new MyDoubleSolution(objectivesN, variablesN);
+        MyDoubleSolution aux = new MyDoubleSolution(objectivesN, variablesN);
+        for (String k : attributes.keySet()) {
+            aux.setAttribute(k, attributes.get(k));
+        }
+        return aux;
     }
 
 
     @Override
     public void setAttribute(Object id, Object value) {
-        attributes.put(id, value) ;
+        attributes.put((String) id, (Integer) value);
     }
 
     @Override
@@ -103,8 +108,19 @@ public class MyDoubleSolution implements DoubleSolution {
         return attributes.get(id) ;
     }
 
-    public Map<Object, Object> getAttributes() {
-        return attributes;
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder("[");
+        for (Double var : variables) {
+            s.append(var).append(",");
+        }
+        s.append("] ");
+
+        for (Double var : objectives) {
+            s.append(var).append(",");
+        }
+
+        return s.toString();
     }
 }
 

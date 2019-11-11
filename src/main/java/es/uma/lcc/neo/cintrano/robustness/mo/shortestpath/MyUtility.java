@@ -1,12 +1,14 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath;
 
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.NodePathSolution;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
+import org.uma.jmetal.algorithm.Algorithm;
+import org.uma.jmetal.solution.DoubleSolution;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -251,6 +253,106 @@ public class MyUtility {
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    static void printStaticFinalLog(Algorithm<List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution>> algorithm, long time, String label) {
+        Writer writer = null;
+        String filename = "result_F.csv";
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filename), StandardCharsets.UTF_8));
+            int i, tls;
+            long iteration = 111L;
+            i = 0;
+            for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution sol : algorithm.getResult()) {
+                tls = (Integer) sol.getAttribute("tl");
+                writer.write(iteration + " " + i + " "+ time + " " + tls + " ");
+                for (double e : sol.getObjectives()) {
+                    writer.write(e + " ");
+                }
+                i++;
+                writer.write("\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // report
+        } finally {
+            try {
+                assert writer != null;
+                writer.close();} catch (Exception ex) {ex.printStackTrace();}
+        }
+        filename = "result_V.csv";
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filename), StandardCharsets.UTF_8));
+            int i = 0;
+            long iteration = 111L;
+            for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution sol : algorithm.getResult()) {
+                writer.write(iteration + " " + i + " ");
+                for (Long e : sol.getVariables()) {
+                    writer.write(e + " ");
+                }
+                i++;
+                writer.write("\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // report
+        } finally {
+            try {writer.close();} catch (Exception ex) {ex.printStackTrace();}
+        }
+    }
+
+    static void printStaticFinalLog(Algorithm<List<MyDoubleSolution>> algorithm, long time) {
+        Writer writer = null;
+        String filename = "result_F.csv";
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filename), StandardCharsets.UTF_8));
+            int i, tls;
+            long iteration = 111L;
+            i = 0;
+            for (MyDoubleSolution sol : algorithm.getResult()) {
+                tls = (Integer) sol.getAttribute("tl");
+                writer.write(iteration + " " + i + " "+ time + " " + tls + " ");
+                for (double e : sol.getObjectives()) {
+                    writer.write(e + " ");
+                }
+                i++;
+                writer.write("\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // report
+        } finally {
+            try {
+                assert writer != null;
+                writer.close();} catch (Exception ex) {ex.printStackTrace();}
+        }
+        filename = "result_V.csv";
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(filename), StandardCharsets.UTF_8));
+            int i = 0;
+            long iteration = 111L;
+            for (DoubleSolution sol : algorithm.getResult()) {
+                writer.write(iteration + " " + i + " ");
+                for (int j = 0; j < sol.getNumberOfVariables(); j++) {
+                    writer.write(sol.getVariableValue(j) + " ");
+                }
+                i++;
+                writer.write("\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // report
+        } finally {
+            try {writer.close();} catch (Exception ex) {ex.printStackTrace();}
         }
     }
 

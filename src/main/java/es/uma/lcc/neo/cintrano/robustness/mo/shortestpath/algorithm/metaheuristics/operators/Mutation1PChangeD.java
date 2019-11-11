@@ -3,7 +3,6 @@ package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheurist
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MOShortestPathProblemDouble;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.MyDoubleSolution;
 import org.uma.jmetal.operator.MutationOperator;
-import org.uma.jmetal.solution.DoubleSolution;
 import org.uma.jmetal.util.JMetalException;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 
@@ -13,7 +12,7 @@ import java.util.ArrayList;
  * Created by Christian Cintrano on 14/12/16.
  * Mutation operation: swap and new individual
  */
-public class Mutation1PChangeD implements MutationOperator<DoubleSolution> {
+public class Mutation1PChangeD implements MutationOperator<MyDoubleSolution> {
     private double mutationProbability;
 
     private JMetalRandom randomGenerator ;
@@ -29,64 +28,34 @@ public class Mutation1PChangeD implements MutationOperator<DoubleSolution> {
         }
 
         this.mutationProbability =mutationProbability ;
-
         this.problem = problem;
-
         randomGenerator = JMetalRandom.getInstance();
     }
 
-    public DoubleSolution execute(DoubleSolution pathSolution) {
+    public MyDoubleSolution execute(MyDoubleSolution pathSolution) {
 
         if (randomGenerator.nextDouble() < mutationProbability) {
-            ///////////////////////////
-
             int index = randomGenerator.nextInt(0, problem.getGraph().getIntersections().keySet().size()-1);
-            Long nextNode = new ArrayList<Long>(problem.getGraph().getIntersections().keySet()).get(index);
+            Long nextNode = new ArrayList<>(problem.getGraph().getIntersections().keySet()).get(index);
             Long[] head = problem.getShortestPathBetween( (pathSolution.getVariableValue(0)).longValue(), nextNode);
             Long[] tail = problem.getShortestPathBetween(nextNode, pathSolution.getVariableValue(pathSolution.getNumberOfVariables() - 1).longValue());
 
-            Long[] out;
+            Double[] out;
             if (tail.length == 0 || head.length == 0) {
-                out = new Long[pathSolution.getNumberOfVariables()];
+                out = new Double[pathSolution.getNumberOfVariables()];
                 for (int i = 0; i < out.length; i++) {
-                    out[i] = pathSolution.getVariableValue(i).longValue();
-                }
-                //out = pathSolution.getVariables();
-            } else {
-                out = new Long[head.length + tail.length - 1];
-                for (int i = 0; i < head.length; i++) {
-                    out[i] = head[i];
-                }
-                for (int i = 1; i < tail.length; i++) {
-                    out[i + head.length - 1] = tail[i];
-                }
-            }
-
-            ((MyDoubleSolution) pathSolution).setVariables(new Double[out.length]);
-            for (int i = 0; i < out.length; i++) {
-                pathSolution.setVariableValue(i, out[i].doubleValue());
-            }
-
-            ///////////////////////////
-            /*
-            int index = randomGenerator.nextInt(0, pathSolution.getVariables().length - 2);
-            Long nextNode = problem.findRandomNextNode(pathSolution.getVariableValue(index));
-            Long[] tail = problem.getShortestPathWithMiddlePoint(nextNode);
-
-            Long[] out;
-            if (tail.length == 0) {
-                out = pathSolution.getVariables();
-            } else {
-                out = new Long[index + tail.length + 1];
-                for (int i = 0; i <= index; i++) {
                     out[i] = pathSolution.getVariableValue(i);
                 }
-                for (int i = 0; i < tail.length; i++) {
-                    out[i + index + 1] = tail[i];
+            } else {
+                out = new Double[head.length + tail.length - 1];
+                for (int i = 0; i < head.length; i++) {
+                    out[i] = head[i].doubleValue();
+                }
+                for (int i = 1; i < tail.length; i++) {
+                    out[i - 1 + head.length] = tail[i].doubleValue();
                 }
             }
             pathSolution.setVariables(out);
-            */
         }
 
         return pathSolution;

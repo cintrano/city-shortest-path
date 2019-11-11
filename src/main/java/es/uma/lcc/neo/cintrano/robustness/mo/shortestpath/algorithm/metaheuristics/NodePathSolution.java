@@ -11,17 +11,14 @@ import java.util.Map;
  * Path solution in the graph
  */
 public class NodePathSolution implements Solution<Long> {
-//public class NodePathSolution implements RankingSolution, CrowdingDistanceSolution {
-//public class NodePathSolution implements SolutionAttribute<NodePathSolution, V> {
     private double[] objectives;
     private Long[] variables;
-    protected Map<Object, Object> attributes ;
-    private int tl = 0;
+    private Map<Object, Object> attributes ;
 
     public NodePathSolution(double[] objectives, Long[] variables) {
         this.objectives = objectives;
         this.variables = variables;
-        attributes = new HashMap<Object, Object>() ;
+        attributes = new HashMap<>() ;
     }
 
     public void setObjective(int i, double v) {
@@ -70,39 +67,8 @@ public class NodePathSolution implements Solution<Long> {
         return attributes.get(id) ;
     }
 
-    public Map<Object, Object> getAttributes() {
-        return attributes;
-    }
-
-//    @Override
-//    public Object getAttribute(Object o) {
-//        return getAttribute((NodePathSolution) o);
-//    }
-//
-//    private Map<Object, Object> attributes = new HashMap<>();
-//
-//    public Integer getAttribute(NodePathSolution solution) {
-//        return (Integer) solution.getAttribute(getAttributeID());
-//    }
-//
-//    public void setAttribute(NodePathSolution solution, Integer value) {
-//        solution.setAttribute(getAttributeID(), value);
-//    }
-
-    public Object getAttributeID() {
-        return this.getClass() ;
-    }
-
     public Long[] getVariables() {
         return variables;
-    }
-
-    public Double[] getVariablesDouble() {
-        Double[] tmp = new Double[variables.length];
-        for (int i = 0; i < variables.length; i++) {
-            tmp[i] = new Double(variables[i]);
-        }
-        return tmp;
     }
 
     @Override
@@ -122,13 +88,5 @@ public class NodePathSolution implements Solution<Long> {
 
     public double[] getObjectives() {
         return objectives;
-    }
-
-    public int getTl() {
-        return tl;
-    }
-
-    public void setTl(int tl) {
-        this.tl = tl;
     }
 }

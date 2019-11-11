@@ -111,11 +111,11 @@ public class MyDifferentialEvolutionCrossover extends DifferentialEvolutionCross
         // Crossover
         DoubleSolution solution1 = parentSolutions.get(0);
         DoubleSolution solution2 = parentSolutions.get(1);
-        List<DoubleSolution> list = new ArrayList<DoubleSolution>();
+        List<DoubleSolution> list = new ArrayList<>();
         if (JMetalRandom.getInstance().nextDouble() < 0.9) {
-            List<Double> points = getPoints((MyDoubleSolution) solution1, (MyDoubleSolution) solution2);
+            List<Double> points = getPoints((MyDoubleSolution) solution1, (MyDoubleSolution) solution2);//getPoints(solution1, solution2);
             int index = JMetalRandom.getInstance().nextInt(0, points.size()-1);
-            int i1 = -1, i2 = -1;
+            int i1 = -1, i2 = -1; // index in the solutions
             for (int j = 0; j < solution1.getNumberOfVariables(); j++) {
                 if (points.get(index).equals(solution1.getVariableValue(j))) {
                     i1 = j;
@@ -149,8 +149,6 @@ public class MyDifferentialEvolutionCrossover extends DifferentialEvolutionCross
             MyDoubleSolution child1 = new MyDoubleSolution(new double[solution1.getNumberOfObjectives()], first);
             MyDoubleSolution child2 = new MyDoubleSolution(new double[solution1.getNumberOfObjectives()], second);
 
-
-
             // Local Search
 
 
@@ -160,149 +158,16 @@ public class MyDifferentialEvolutionCrossover extends DifferentialEvolutionCross
         } else {
             //list.add(solution1);
             //list.add(solution2);
-            list.add(parentSolutions.get(2));
+            list.add((MyDoubleSolution) parentSolutions.get(2).copy());
         }
         return list;
-        /*
-        DoubleSolution child;
-
-        int jrand;
-
-        child = (DoubleSolution)currentSolution.copy() ;
-
-        int numberOfVariables = parentSolutions.get(0).getNumberOfVariables();
-        jrand = jRandomGenerator.getRandomValue(0, numberOfVariables - 1);
-
-        // STEP 4. Checking the DE variant
-        if ((DEFAULT_DE_VARIANT.equals(variant)) ||
-                "best/1/bin".equals(variant)) {
-            for (int j = 0; j < numberOfVariables; j++) {
-                if (crRandomGenerator.getRandomValue(0.0, 1.0) < cr || j == jrand) {
-                    double value;
-                    value = parentSolutions.get(2).getVariableValue(j) + f * (parentSolutions.get(0).getVariableValue(
-                            j) -
-                            parentSolutions.get(1).getVariableValue(j));
-
-                    if (value < child.getLowerBound(j)) {
-                        value = child.getLowerBound(j);
-                    }
-                    if (value > child.getUpperBound(j)) {
-                        value = child.getUpperBound(j);
-                    }
-                    child.setVariableValue(j, value);
-                } else {
-                    double value;
-                    value = currentSolution.getVariableValue(j);
-                    child.setVariableValue(j, value);
-                }
-            }
-        } else if ("rand/1/exp".equals(variant) ||
-                "best/1/exp".equals(variant)) {
-            for (int j = 0; j < numberOfVariables; j++) {
-                if (crRandomGenerator.getRandomValue(0.0, 1.0) < cr || j == jrand) {
-                    double value;
-                    value = parentSolutions.get(2).getVariableValue(j) + f * (parentSolutions.get(0).getVariableValue(j) -
-                            parentSolutions.get(1).getVariableValue(j));
-
-                    if (value < child.getLowerBound(j)) {
-                        value = child.getLowerBound(j);
-                    }
-                    if (value > child.getUpperBound(j)) {
-                        value = child.getUpperBound(j);
-                    }
-
-                    child.setVariableValue(j, value);
-                } else {
-                    cr = 0.0;
-                    double value;
-                    value = currentSolution.getVariableValue(j);
-                    child.setVariableValue(j, value);
-                }
-            }
-        } else if ("current-to-rand/1".equals(variant) ||
-                "current-to-best/1".equals(variant)) {
-            for (int j = 0; j < numberOfVariables; j++) {
-                double value;
-                value = currentSolution.getVariableValue(j) + k * (parentSolutions.get(2).getVariableValue(j) -
-                        currentSolution.getVariableValue(j)) +
-                        f * (parentSolutions.get(0).getVariableValue(j) - parentSolutions.get(1).getVariableValue(j));
-
-                if (value < child.getLowerBound(j)) {
-                    value = child.getLowerBound(j);
-                }
-                if (value > child.getUpperBound(j)) {
-                    value = child.getUpperBound(j);
-                }
-
-                child.setVariableValue(j, value);
-            }
-        } else if ("current-to-rand/1/bin".equals(variant) ||
-                "current-to-best/1/bin".equals(variant)) {
-            for (int j = 0; j < numberOfVariables; j++) {
-                if (crRandomGenerator.getRandomValue(0.0, 1.0) < cr || j == jrand) {
-                    double value;
-                    value = currentSolution.getVariableValue(j) + k * (parentSolutions.get(2).getVariableValue(j) -
-                            currentSolution.getVariableValue(j)) +
-                            f * (parentSolutions.get(0).getVariableValue(j) - parentSolutions.get(1).getVariableValue(j));
-
-                    if (value < child.getLowerBound(j)) {
-                        value = child.getLowerBound(j);
-                    }
-                    if (value > child.getUpperBound(j)) {
-                        value = child.getUpperBound(j);
-                    }
-
-                    child.setVariableValue(j, value);
-                } else {
-                    double value;
-                    value = currentSolution.getVariableValue(j);
-                    child.setVariableValue(j, value);
-                }
-            }
-        } else if ("current-to-rand/1/exp".equals(variant) ||
-                "current-to-best/1/exp".equals(variant)) {
-            for (int j = 0; j < numberOfVariables; j++) {
-                if (crRandomGenerator.getRandomValue(0.0, 1.0) < cr || j == jrand) {
-                    double value;
-                    value = currentSolution.getVariableValue(j) + k * (parentSolutions.get(2).getVariableValue(j) -
-                            currentSolution.getVariableValue(j)) +
-                            f * (parentSolutions.get(0).getVariableValue(j) - parentSolutions.get(1).getVariableValue(j));
-
-                    if (value < child.getLowerBound(j)) {
-                        value = child.getLowerBound(j);
-                    }
-                    if (value > child.getUpperBound(j)) {
-                        value = child.getUpperBound(j);
-                    }
-
-                    child.setVariableValue(j, value);
-                } else {
-                    cr = 0.0;
-                    double value;
-                    value = currentSolution.getVariableValue(j);
-                    child.setVariableValue(j, value);
-                }
-            }
-        } else {
-            JMetalLogger.logger.severe("DifferentialEvolutionCrossover.execute: " +
-                    " unknown DE variant (" + variant + ")");
-            Class<String> cls = String.class;
-            String name = cls.getName();
-            throw new JMetalException("Exception in " + name + ".execute()");
-        }
-
-        List<DoubleSolution> result = new ArrayList<>(1) ;
-        result.add(child) ;
-        return result;
-        */
     }
 
     private static List<Double> getPoints(MyDoubleSolution solution1, MyDoubleSolution solution2) {
-        List<Double> solutions = new ArrayList<Double>();
+        List<Double> solutions = new ArrayList<>();
 
         for (int i = 0; i < solution1.getNumberOfVariables(); i++) {
-            //System.out.println(solution1.getVariableValue(i) + " " + Arrays.asList(solution2.getVariables()).contains(solution1.getVariableValue(i)));
-            if (Arrays.asList(solution2.getVariables()).contains(solution1.getVariableValue(i))) {
+            if (Arrays.asList((solution2).getVariables()).contains(solution1.getVariableValue(i))) {
                 solutions.add(solution1.getVariableValue(i));
             }
         }

@@ -1,13 +1,9 @@
 package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics;
 
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.MyUtility;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.astar.Astar;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.DijkstraWeighted;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.TlLogic;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.utilities.ProcessGraph;
-import org.uma.jmetal.algorithm.Algorithm;
 import org.uma.jmetal.problem.Problem;
 import org.uma.jmetal.util.pseudorandom.JMetalRandom;
 
@@ -27,38 +23,18 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
     private int numVariables;
     private int numObjectives = 4;
     private final int numConstraints = 0;
-    private Map<String, Integer> objectivesTags; // <tag, fitness array id>
     private boolean robustFlag = true;
     private boolean TLFlag = true;
-
-    private Algorithm<NodePathSolution> algorithm;
-    public void setAlgorithm(Algorithm<NodePathSolution> algorithm) {
-        this.algorithm = algorithm;
-    }
 
     /**
      * Constructor.
      * Creates a default instance of the Bi-Objective Shortest Path problem.
      */
-    public MOShortestPathProblem() {
-
-    }
-
     private MOShortestPathProblem(GraphTable graph, Integer numVariables) {
         this.graph = graph;
         setNumVariables(numVariables);
     }
 
-    public MOShortestPathProblem(GraphTable graph) {
-        this(graph, 10);
-    }
-
-    public MOShortestPathProblem(GraphTable graph, Long start, Long end, int numVariables, Map<String, Integer> objectivesTags) {
-        this(graph, numVariables);
-        this.start = start;
-        this.end = end;
-        this.objectivesTags = objectivesTags;
-    }
     public MOShortestPathProblem(GraphTable graph, Long start, Long end, int numVariables) {
         this(graph, numVariables);
         this.start = start;
@@ -70,15 +46,6 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
         this.robustFlag = robustFlag;
         this.TLFlag = TLFlag;
         if (!robustFlag) MAX_SAMPLES = 1;
-    }
-
-
-    public void setRobustFlag(boolean robustFlag) {
-        this.robustFlag = robustFlag;
-    }
-
-    public void setTLFlag(boolean TLFlag) {
-        this.TLFlag = TLFlag;
     }
 
     private void setNumVariables(int numVariables) {
@@ -105,46 +72,6 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
      * Traffic light version
      * @param pathSolution path to be evaluate
      */
-    public void evaluateAnterior(NodePathSolution pathSolution) {
-        for (int objective = 0; objective < numObjectives; objective += 2) {
-            int tlCount = 0;
-            long n1, n2;
-            float amount = 0;
-            List<Double> samples = new ArrayList<>();
-            for (int sample = 0; sample < MAX_SAMPLES; sample++) {
-                double cost = 0;
-                for (int i = 0; i < pathSolution.getNumberOfVariables() - 1; i++) {
-                    n1 = pathSolution.getVariableValue(i);
-                    n2 = pathSolution.getVariableValue(i + 1);
-                    Long arc = graph.getAdjacencyMatrix().get(n1, n2);
-                    float mu = graph.getWeightsMatrix().get(arc, (long) objective);
-                    float sigma = graph.getWeightsMatrix().get(arc, (long) objective +1);
-                    float tentativeTime = (float) randNormal(mu, sigma);
-//                    System.out.println("------- JMetal Gaussian Random: " + tentativeTime);
-                    cost += tentativeTime; // TODO Add drive profile
-                    if (TLFlag) {
-                        // TrafficLight phase
-                        TlLogic tl = graph.getTlMatrix().get(n1, n2);
-                        if (tl != null) {
-                            tlCount++;
-                            int time = tl.calculateTimeStop(Math.round(cost + 0.5d));
-                            cost += time;
-                        }
-                    }
-                }
-                samples.add(cost);
-                amount += cost;
-            }
-            float mean = amount / (float) MAX_SAMPLES;
-            float variance = MyUtility.variance(samples, mean);
-            System.out.println("F " + mean + " " + variance + " " + tlCount);
-            pathSolution.setObjective(objective, mean);
-            pathSolution.setObjective(objective+1, variance);
-            pathSolution.setTl(tlCount);
-            pathSolution.setAttribute("tl", tlCount);
-        }
-    }
-
     public void evaluate(NodePathSolution pathSolution) {
         float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
         int tlCount = 0;
@@ -200,7 +127,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
                 sumSq[1] += cost[1] * cost[1];
             } else {
                 fit[0] = cost[0];
-                fit[2] = cost[2];
+                fit[2] = cost[1];
             }
         }
         if (robustFlag) {
@@ -215,7 +142,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
         for (int i = 0; i < pathSolution.getNumberOfObjectives(); i++) {
             pathSolution.setObjective(i, fit[i]);
         }
-        pathSolution.setTl(tlCount);
+        //pathSolution.setTl(tlCount);
         pathSolution.setAttribute("tl", tlCount);
     }
 
@@ -241,191 +168,38 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
     }
 
     public NodePathSolution createSolution() {
-        JMetalRandom randomGenerator = JMetalRandom.getInstance();
-
-        float peso = 0.5f;
-        peso = new Double(randomGenerator.nextDouble()).floatValue();
-        System.out.println(peso);
         return new NodePathSolution(new double[getNumberOfObjectives()],
-                //getRandomPath(this.graph, this.start, this.end));
-                //getDepthFirstSearchPath(this.graph, this.start, this.end));
-                //getRandomDijkstraSearchPath(this.graph, this.start, this.end, peso));
                 getRandomAstarPath(this.graph, this.start, this.end));
     }
 
     private Long[] getRandomAstarPath(GraphTable graph, Long start, Long end) {
         JMetalRandom randomGenerator = JMetalRandom.getInstance();
         int index = randomGenerator.nextInt(0, graph.getAdjacencyMatrix().rowKeySet().size()-1);
-        //Long nextNode = new ArrayList<Long>(graph.getAdjacencyMatrix().rowKeySet()).get(index);
-        Long nextNode = new ArrayList<Long>(graph.getIntersections().keySet()).get(index);
+        Long nextNode = new ArrayList<>(graph.getIntersections().keySet()).get(index);
 
         Long[] head = getRandomAstarSearchPath(graph, start, nextNode);//getShortestPathBetween(start, nextNode);
         Long[] tail = getRandomAstarSearchPath(graph, nextNode, end);//getShortestPathBetween(nextNode, end);
 
         Long[] out = new Long[head.length + tail.length - 1];
-            for (int i = 0; i < head.length; i++) {
-                out[i] = head[i];
-            }
-            for (int i = 1; i < tail.length; i++) {
-                out[i + head.length - 1] = tail[i];
-            }
+        System.arraycopy(head, 0, out, 0, head.length);
+        if (tail.length - 1 >= 0) System.arraycopy(tail, 1, out, 1 + head.length - 1, tail.length - 1);
         return out;
     }
 
-    private static Long[] getRandomPath(GraphTable graph, Long start, Long end) {
-        List<Long> aux;
-        Long current = start;
-        List<Long> path = new ArrayList<Long>();
-        path.add(start);
-        JMetalRandom randomGenerator = JMetalRandom.getInstance();
-        boolean valid;
-        do {
-            aux = new ArrayList<Long>(graph.getAdjacencyMatrix().row(current).keySet());
-//            System.out.println(aux);
-            valid = false;
-            while (aux.size() > 0 && !valid) {
-                int index = randomGenerator.nextInt(0, aux.size()-1);
-                //System.out.println(aux.size() + " " + index);
-                if (path.contains(aux.get(index))) {
-                    // remove next node
-                    aux.remove(index);
-                } else {
-                    path.add(aux.get(index));
-                    current = aux.get(index);
-                    valid = true;
-                }
-            }
-        } while (!current.equals(end) && aux.size() > 0);
-        Long[] pathArray = new Long[path.size()];
-//        System.out.println("=== NEW INDIVIDUAL ===");
-        for (int i = 0; i < path.size(); i++) {
-            pathArray[i] = path.get(i);
-//            System.out.println(pathArray[i]);
-        }
-//        System.out.println("======");
-        return pathArray;
-    }
-
-    private static Long[] getRandomDijkstraSearchPath(GraphTable graph, Long start, Long end, float peso) {
-        List<Long> path;
-        DijkstraWeighted algorithm = new DijkstraWeighted(0L, 1L, peso);
-        algorithm.setGraph(graph);
-
-        /*
-        Long middleNode = new ArrayList<Long>(graph.getIntersections().keySet()).get(randomGenerator.nextInt(0, graph.getIntersections().keySet().size() -1));
-        path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(middleNode));
-        path.remove(path.size()-1);
-        path.addAll(algorithm.getPath(graph.getIntersections().get(middleNode), graph.getIntersections().get(end)));
-        */
-        List<Node> pathN = algorithm.getPath(start, end);
-        path = ProcessGraph.nodeToLong(graph, pathN);
-
-        Long[] pathArray = new Long[path.size()];
-        //System.out.println("=== NEW INDIVIDUAL ===");
-        for (int i = 0; i < path.size(); i++) {
-            pathArray[i] = path.get(i);
-            System.out.print(pathArray[i] + " ");
-        //    System.out.println(pathArray[i]);
-        }
-//        System.out.println();
-        //System.out.println("======");
-/*
-        System.out.print("N " + pathArray.length + " --> ");
-        for (Long l : pathArray) {
-            System.out.print(" " + l);
-        }
-        System.out.println();
-*/
-        return pathArray;
-    }
     private static Long[] getRandomAstarSearchPath(GraphTable graph, Long start, Long end) {
         List<Node> path;
         Astar algorithm = new Astar();
         algorithm.setGraph(graph);
         algorithm.setTarget(0.5f);
 
-        /*
-        Long middleNode = new ArrayList<Long>(graph.getIntersections().keySet()).get(randomGenerator.nextInt(0, graph.getIntersections().keySet().size() -1));
-        path = algorithm.getPath(graph.getIntersections().get(start), graph.getIntersections().get(middleNode));
-        path.remove(path.size()-1);
-        path.addAll(algorithm.getPath(graph.getIntersections().get(middleNode), graph.getIntersections().get(end)));
-        */
         path = algorithm.getPath(start, end);
 
-        //System.out.print("PATH " + path.size() + " " + start + " " + end+ " -> ");
-        //for (IntersectionInterface l : path) {
-        //    System.out.print(l + " ");
-        //}
-        //System.out.println();
-
-
         Long[] pathArray = new Long[path.size()];
-        //System.out.println("=== NEW INDIVIDUAL ===");
         for (int i = 0; i < path.size(); i++) {
             pathArray[i] = graph.getMapping().get(path.get(i).getId());
-            //    System.out.println(pathArray[i]);
         }
-        //System.out.println("======");
-/*
-        System.out.print("N " + pathArray.length + " --> ");
-        for (Long l : pathArray) {
-            System.out.print(" " + l);
-        }
-        System.out.println();
-*/
         return pathArray;
     }
-
-
-    private static Long[] getDepthFirstSearchPath(GraphTable graph, Long start, Long end) {
-        List<Long> path = new ArrayList<Long>();
-        List<Long> aux;
-
-        Stack<Long> stack = new Stack<Long>();
-        stack.add(start);
-        boolean foundGoal = false;
-
-        while (!stack.isEmpty() && !foundGoal) {
-            Long node = stack.pop();
-
-            if (path.size() > 1 && isCorrelative(graph, path.get(path.size()-1), node)) {
-                if (node.equals(end)) {
-                    path.add(node);
-                    foundGoal = true;
-                } else {
-                    path.add(node);
-                    aux = new ArrayList<Long>(graph.getAdjacencyMatrix().row(node).keySet());
-                    for (Long n : aux) {
-                        stack.push(n);
-                    }
-                }
-            } else if (path.isEmpty()) {
-                path.add(node);
-                aux = new ArrayList<Long>(graph.getAdjacencyMatrix().row(node).keySet());
-                for (Long n : aux) {
-                    stack.push(n);
-                }
-            } else {
-                path.remove(path.size()-1);
-                stack.push(node);
-            }
-
-        }
-
-        Long[] pathArray = new Long[path.size()];
-//        System.out.println("=== NEW INDIVIDUAL ===");
-        for (int i = 0; i < path.size(); i++) {
-            pathArray[i] = path.get(i);
-//            System.out.println(pathArray[i]);
-        }
-//        System.out.println("======");
-        return pathArray;
-    }
-
-    private static boolean isCorrelative(GraphTable graph, Long start, Long end) {
-        return graph.getAdjacencyMatrix().row(start).keySet().contains(end);
-    }
-
 
     @Override
     public String toString() {
@@ -437,42 +211,6 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
                 ", numObjectives=" + numObjectives +
                 ", numConstraints=" + numConstraints +
                 '}';
-    }
-
-    /**
-     * Dijkstra method to compute a path between the node and the end-node
-     * @param node start node
-     * @return path
-     */
-    public Long[] getShortestPartialPath(Long node) {
-        // TODO: change to dijkstra algorithm
-        return getRandomPath(graph, node, end);
-    }
-
-    public Long[] getShortestPathWithMiddlePoint() {
-        JMetalRandom randomGenerator = JMetalRandom.getInstance();
-        Long middle = new ArrayList<Long>(this.graph.getIntersections().keySet()).get(randomGenerator.nextInt(0, this.graph.getIntersections().keySet().size() - 1));
-        Long[] head = getRandomDijkstraSearchPath(this.graph, this.start, middle, 0.5f);
-        Long[] tail = getRandomDijkstraSearchPath(this.graph, middle, this.end, 0.5f);
-        Long[] out = new Long[head.length + tail.length -1];
-        for (int i = 0; i < head.length -1; i++) {
-            out[i] = head[i];
-        }
-        for (int i = 0; i < tail.length; i++) {
-            out[i + head.length - 1] = tail[i];
-        }
-        return out;
-    }
-
-    public Long[] getShortestPathWithMiddlePoint(Long variableValue) {
-        //return getRandomDijkstraSearchPath(this.graph, variableValue, this.end, 0.5f);
-        return getRandomAstarSearchPath(this.graph, variableValue, this.end);
-    }
-
-    public Long findRandomNextNode(Long variableValue) {
-        JMetalRandom randomGenerator = JMetalRandom.getInstance();
-        return new ArrayList<Long>(graph.getAdjacencyMatrix().row(variableValue).keySet())
-                .get(randomGenerator.nextInt(0,graph.getAdjacencyMatrix().row(variableValue).keySet().size()-1));
     }
 
     public GraphTable getGraph() {

@@ -4,7 +4,6 @@ import org.uma.jmetal.algorithm.multiobjective.moead.MOEADSTM;
 import org.uma.jmetal.algorithm.multiobjective.moead.util.MOEADUtils;
 import org.uma.jmetal.operator.CrossoverOperator;
 import org.uma.jmetal.operator.MutationOperator;
-import org.uma.jmetal.operator.impl.crossover.DifferentialEvolutionCrossover;
 import org.uma.jmetal.problem.Problem;
 import org.uma.jmetal.solution.DoubleSolution;
 
@@ -22,12 +21,8 @@ import java.util.List;
 
 public class MOEADSTMTime extends MOEADSTM {
 
-    protected DifferentialEvolutionCrossover differentialEvolutionCrossover;
-
-    protected int[] frequency;
-
-    private long initComputingTime ;
-    private long thresholdComputingTime ;
+    private long initComputingTime;
+    private long thresholdComputingTime;
 
     public MOEADSTMTime(Problem<DoubleSolution> problem, long maxComputingTime, int populationSize, int resultPopulationSize,
                     int maxEvaluations,
