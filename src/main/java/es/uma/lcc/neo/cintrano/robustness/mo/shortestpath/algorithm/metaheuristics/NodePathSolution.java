@@ -54,7 +54,13 @@ public class NodePathSolution implements Solution<Long> {
     }
 
     public NodePathSolution copy() {
-        return this;
+        double[] objectivesN = objectives.clone();
+        Long[] variablesN = variables.clone();
+        NodePathSolution aux = new NodePathSolution(objectivesN, variablesN);
+        for (Object k : attributes.keySet()) {
+            aux.setAttribute(k, attributes.get(k));
+        }
+        return aux;
     }
 
     @Override

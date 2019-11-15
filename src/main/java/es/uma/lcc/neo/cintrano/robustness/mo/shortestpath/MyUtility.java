@@ -266,6 +266,9 @@ public class MyUtility {
             long iteration = 111L;
             i = 0;
             for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution sol : algorithm.getResult()) {
+                System.out.print("SOL:: ");
+                System.out.println(sol);
+                System.out.println(sol.getAttribute("tl"));
                 tls = (Integer) sol.getAttribute("tl");
                 writer.write(iteration + " " + i + " "+ time + " " + tls + " ");
                 for (double e : sol.getObjectives()) {

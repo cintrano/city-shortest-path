@@ -102,19 +102,23 @@ public class MOIteratedLS {
     }
 
     private boolean updateNonDominated(Set<NodePathSolution> nonDominated, float[] fitness, List<Node> values) {
+        boolean out = false;
         for (NodePathSolution n : nonDominated) {
             boolean dom = true;
             for (int i = 0; i < fitness.length - 1; i++) {
                 dom = dom && (fitness[i] <= n.getObjectives()[i]);
             }
-            if (dom) {
-                NodePathSolution nps = new NodePathSolution(Arrays.copyOfRange(fitness, 0, fitness.length - 1), node2arrayLong(values));
-                nps.setTl((int) fitness[fitness.length-1]);
-                nonDominated.add(nps);
-                return true;
+            if (dom) { // remove dominated sol
+                nonDominated.remove(n);
+                out = true;
             }
         }
-        return false;
+        if (out) { // Add new sol
+            NodePathSolution nps = new NodePathSolution(Arrays.copyOfRange(fitness, 0, fitness.length - 1), node2arrayLong(values));
+            nps.setTl((int) fitness[fitness.length-1]);
+            nonDominated.add(nps);
+        }
+        return out;
     }
 
     private Long[] node2arrayLong(List<Node> nodes) {

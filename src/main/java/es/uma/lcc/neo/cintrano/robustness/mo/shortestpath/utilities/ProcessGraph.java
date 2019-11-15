@@ -882,6 +882,7 @@ public class ProcessGraph {
         }
         for (Long r : graph.getAdjacencyMatrix().rowKeySet()) {
             for (Long c : graph.getAdjacencyMatrix().row(r).keySet()) {
+//                System.err.println("(" + graph.getMapping().get(r) + "," + graph.getMapping().get(c) + ")->" + graph.getAdjacencyMatrix().get(r, c) + ",  ");
                 newAdjacencyMatrix.put(
                         graph.getMapping().get(r),
                         graph.getMapping().get(c),

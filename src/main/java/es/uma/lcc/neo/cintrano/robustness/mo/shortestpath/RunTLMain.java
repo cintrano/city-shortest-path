@@ -68,7 +68,7 @@ public class RunTLMain {
             String path = args[2];
 
             GraphTable graph = ProcessGraph.prepareGraph("g_CC.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
-            ProcessGraph.fixVertexIndex(graph);
+//            ProcessGraph.fixVertexIndex(graph);
             ProcessGraph.readTlLogics(graph, "malaga_tls.json");
 
 
@@ -173,11 +173,7 @@ public class RunTLMain {
                         break;
                     case "MOIterated":
                         System.out.println("Run MOIterated...");
-                        rMOIterated(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
-                        break;
-                    case "MOIteratedTime":
-                        System.out.println("Run MOIterated stopping by time...");
-                        rMOIteratedTime(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption);
+                        rMOIterated(graph, points, seed[Integer.parseInt(args[3])], robust, tlOption, maxIterations, maxTime);
                         break;
                 }
             }
@@ -267,32 +263,19 @@ public class RunTLMain {
         MyUtility.printSolutions(graph, new NodePathSolution(graph.getFitness(path, ""), path), timeStart - timeInit, timeEnd - timeStart, "Iterated", wTag, seed);
     }
 
-    private static void rMOIterated(GraphTable graph, Long[] points, int seed, boolean robust, boolean tlOption) {
+    private static void rMOIterated(GraphTable graph, Long[] points, int seed, boolean robust, boolean tlOption, int iterations, long time) {
         long timeInit = System.currentTimeMillis();
         MOIteratedLS algorithm = new MOIteratedLS(seed);
         algorithm.setGraph(graph);
         algorithm.setRobustFlag(robust);
         algorithm.setTLFlag(tlOption);
+        algorithm.setMaxIterations(iterations);
+        algorithm.setThresholdComputingTime((int) time);
         long timeStart = System.currentTimeMillis();
         Set<NodePathSolution> paths = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
         long timeEnd = System.currentTimeMillis();
         String wTag = "1-1-1-1";
         MyUtility.printSolutions(graph, paths, timeStart - timeInit, timeEnd - timeStart, "MOIterated", wTag, seed);
-    }
-
-    private static void rMOIteratedTime(GraphTable graph, Long[] points, int seed, boolean robust, boolean tlOption) {
-        long timeInit = System.currentTimeMillis();
-        MOIteratedLS algorithm = new MOIteratedLS(seed);
-        algorithm.setGraph(graph);
-        algorithm.setRobustFlag(robust);
-        algorithm.setTLFlag(tlOption);
-        algorithm.setThresholdComputingTime(60*1000);
-        long timeStart = System.currentTimeMillis();
-        Set<NodePathSolution> paths = algorithm.getPath(points[0], points[1], new float[]{1, 1, 1, 1});
-        long timeEnd = System.currentTimeMillis();
-        String wTag = "1-1-1-1";
-        MyUtility.printSolutions(graph, paths, timeStart - timeInit, timeEnd - timeStart, "MOIterated", wTag, seed);
-
     }
 
     private static void rDijkstraExperiments(GraphTable graph, Long[] randomPoints) {
@@ -435,7 +418,7 @@ public class RunTLMain {
 //            fillLog(population, 111L);
             MyUtility.printStaticFinalLog(algorithm, computingTime);
 
-            printFinalSolutionSet(population);
+            //printFinalSolutionSet(population);
 
         }
 
@@ -447,10 +430,11 @@ public class RunTLMain {
             SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<>();
 
             if (computationTime == 0) {
-                algorithm = new NSGAII<>(problem, numIterations, populationSize, crossover, mutation, selection, new DominanceComparator<>(), evaluator);
+                algorithm = new NSGAII<>(problem, numIterations, populationSize,
+                        crossover, mutation, selection, new DominanceComparator<>(), evaluator);
             } else {
-                algorithm = new NSGAIIStoppingByTime(problem, populationSize, 60*1000,
-                        crossover, mutation, selection, new DominanceComparator<>());
+                algorithm = new MyNSGAIIStoppingByTime(problem, populationSize, computationTime,
+                        crossover, mutation, selection, new DominanceComparator<>(), evaluator);
             }
             AlgorithmRunner algorithmRunner = new AlgorithmRunner.Executor(algorithm).execute();
             List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> population =
@@ -463,37 +447,7 @@ public class RunTLMain {
 //            fillLogN(population, 111L);
             MyUtility.printStaticFinalLog(algorithm, computingTime, label);
 
-            printFinalSolutionSet(population);
+            //printFinalSolutionSet(population);
         }
     }
-
-//    private static void fillLog(List<DoubleSolution> population, Object o) {
-//        List<double[]> f = new ArrayList<>();
-//        List<Double[]> v = new ArrayList<>();
-//        for (DoubleSolution solution : population) {
-//            f.add(solution.getObjectives());
-//            Double[] aux = new Double[solution.getNumberOfVariables()];
-//            for (int i = 0; i < aux.length; i++) {
-//                aux[i] = solution.getVariableValue(i);
-//            }
-//            v.add(aux);
-//        }
-//        fitnessAll.put((Long) o, f);
-//        solutions.put((Long) o, v);
-//    }
-
-//    private static void fillLogN(List<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> population, Object o) {
-//        List<double[]> f = new ArrayList<>();
-//        List<Double[]> v = new ArrayList<>();
-//        for (es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution solution : population) {
-//            //lista.add(solution.getObjective(0));
-//            f.add(solution.getObjectives());
-//
-//            v.add(solution.getVariablesDouble());
-//        }
-//        fitnessAll.put((Long) o, f);
-//        solutions.put((Long) o, v);
-//    }
-
-
 }

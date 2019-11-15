@@ -168,8 +168,10 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
     }
 
     public NodePathSolution createSolution() {
-        return new NodePathSolution(new double[getNumberOfObjectives()],
+        NodePathSolution n = new NodePathSolution(new double[getNumberOfObjectives()],
                 getRandomAstarPath(this.graph, this.start, this.end));
+        evaluate(n);
+        return n;
     }
 
     private Long[] getRandomAstarPath(GraphTable graph, Long start, Long end) {

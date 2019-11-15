@@ -89,8 +89,8 @@ public class Crossover1PLS implements CrossoverOperator<NodePathSolution> {
             list.add(child1);
             list.add(child2);
         } else {
-            list.add(solution1);
-            list.add(solution2);
+            list.add(solution1.copy());
+            list.add(solution2.copy());
         }
         return list;
     }

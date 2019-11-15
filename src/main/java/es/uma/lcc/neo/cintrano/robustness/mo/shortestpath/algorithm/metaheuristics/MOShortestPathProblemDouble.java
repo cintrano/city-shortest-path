@@ -88,8 +88,7 @@ public class MOShortestPathProblemDouble implements Problem<MyDoubleSolution> {
                 if (continuar) {
                     n1 = pathSolution.getVariableValue(i).longValue();
                     n2 = (pathSolution.getVariableValue(i + 1)).longValue();
-                    try {
-                        long arc = graph.getAdjacencyMatrix().get(n1, n2);
+                    long arc = graph.getAdjacencyMatrix().get(n1, n2);
                     mu = new float[numObjectives / 2];
                     sigma = new float[numObjectives / 2];
 
@@ -118,11 +117,6 @@ public class MOShortestPathProblemDouble implements Problem<MyDoubleSolution> {
                             float pollution = 2166.094f * (float) time; // c0 * time
                             cost[1] += pollution;
                         }
-                    }
-                    } catch (Exception e) {
-                        System.err.println("ERROR:: " + n1 + " " + pathSolution.getNumberOfVariables() + " " + i);
-                        System.err.println(graph.getAdjacencyMatrix().row(n1));
-                        System.err.println(graph.getAdjacencyMatrix().column(n1));
                     }
                 }
             }
