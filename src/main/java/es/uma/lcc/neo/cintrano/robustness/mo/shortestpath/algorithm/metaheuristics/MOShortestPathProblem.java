@@ -73,6 +73,7 @@ public class MOShortestPathProblem implements Problem<NodePathSolution> {
      * @param pathSolution path to be evaluate
      */
     public void evaluate(NodePathSolution pathSolution) {
+        System.out.println("EVALUATION:: " + pathSolution);
         float[] fit = new float[numObjectives + 1]; // To return the num of TL as the last one
         int tlCount = 0;
         long n1, n2;

@@ -5,9 +5,7 @@ import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra.Dij
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.IteratedLS;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.iterated.MOIteratedLS;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.*;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Crossover1PLS;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Mutation1PChange;
-import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.Mutation1PChangeD;
+import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.operators.*;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.Pulse;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.pulse.PulseMO;
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.GraphTable;
@@ -91,7 +89,8 @@ public class RunTLMain {
                     break;
                 case "Graph":
                     //graph = ProcessGraph.prepareGraph("malga.osm-tlgraph.xml", "malaga.osm-tlweight.xml", "malaga.osm-mapping.txt", "MAL");
-                    graph = ProcessGraph.prepareGraph("g_filter.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
+                    //graph = ProcessGraph.prepareGraph("g_filter.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
+                    graph = ProcessGraph.prepareGraph("g_CC.xml", "w_filter.xml", "malaga.osm-mapping.txt", "MAL");
                     ProcessGraph.printMapping(graph);
                     ProcessGraph.getConnectedComponents(graph);
                     ProcessGraph.printSCCs(graph);
@@ -391,7 +390,8 @@ public class RunTLMain {
 
         if (metaheuristic.equals("MOEAD")) {
             double mutationDistributionIndex = 20.0 ;
-            mutation = new Mutation1PChangeD((MOShortestPathProblemDouble) problem, mutationProbability, mutationDistributionIndex);
+            //mutation = new Mutation1PChangeD((MOShortestPathProblemDouble) problem, mutationProbability, mutationDistributionIndex);
+            mutation = new Mutation1PRegenerationDouble((MOShortestPathProblemDouble) problem, mutationProbability, mutationDistributionIndex);
             label += "MOEAD";
 
             if (computationTime == 0) {
@@ -424,7 +424,8 @@ public class RunTLMain {
 
         if (metaheuristic.equals("NSGAII")) {
             double mutationDistributionIndex = 20.0;
-            mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
+            //mutation = new Mutation1PChange((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
+            mutation = new Mutation1PRegeneration((MOShortestPathProblem) problem, mutationProbability, mutationDistributionIndex);
             label += "NSGAII";
             final BinaryTournamentSelection<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> selection = new BinaryTournamentSelection<>(new RankingAndCrowdingDistanceComparator<>());
             SolutionListEvaluator<es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.metaheuristics.NodePathSolution> evaluator = new SequentialSolutionListEvaluator<>();

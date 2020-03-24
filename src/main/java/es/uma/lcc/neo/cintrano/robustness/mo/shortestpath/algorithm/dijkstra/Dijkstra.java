@@ -34,7 +34,7 @@ public class Dijkstra {
 
     public List<Node> getPath(Long from, Long to) {
         //System.out.println("From:" + from.getId() + " To:" + to.getId());
-//        System.out.println("From:" + from + " To:" + to);
+        System.out.println("From:" + from + " To:" + to);
         if (from == to) { // path with a single node
             List<Node> path = new LinkedList<Node>();
             path.add(graph.getIntersections().get(from));
@@ -52,8 +52,8 @@ public class Dijkstra {
             unvisited.remove(node);
             visitNeighbors(node);
         }
-
-//        System.out.println("___________ B: ");
+//System.out.println(predecessors);
+        System.out.println("___________ B: ");
         return computePath(to);
     }
 
@@ -109,8 +109,8 @@ public class Dijkstra {
         Long step = target;
         // check if a path exists
         if (predecessors.get(step) == null) {
-//            System.out.print(from + " ");
-//            System.out.println(to);
+            System.out.print(from + " ");
+            System.out.println(to);
             if (getGraph().getAdjacencyMatrix().get(from.getId(), to.getId()) != null) {
             //if (getGraph().getAdjacencyMatrix().get(getGraph().getMapping().get(from.getId())
             //        , getGraph().getMapping().get(to.getId())) != null) {

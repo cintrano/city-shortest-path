@@ -2,6 +2,7 @@ package es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.algorithm.dijkstra;
 
 import es.uma.lcc.neo.cintrano.robustness.mo.shortestpath.model.graph.guava.Node;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ public class DijkstraWNDimForbidden extends Dijkstra {
     public DijkstraWNDimForbidden(Long[] labs) {
         super();
         this.labs = labs;
+        forbidden = new ArrayList<>();
     }
 
     public void setWeights(float[] weights) {
@@ -36,5 +38,12 @@ public class DijkstraWNDimForbidden extends Dijkstra {
         //List<String> names = cars.stream().map( Car::getName ).collect( Collectors.toList() );
         //forbidden = forbiddenList;
         forbidden = fNodes.stream().map(Node::getId).collect(Collectors.toList());
+    }
+
+    public void setForbiddenList(List<Long> fNodes) {
+        //List<String> names = cars.stream().map( Car::getName ).collect( Collectors.toList() );
+        //forbidden = forbiddenList;
+        System.out.println(fNodes);
+        forbidden = fNodes;
     }
 }
